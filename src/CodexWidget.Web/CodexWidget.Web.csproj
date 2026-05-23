@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodexWidget.Core\CodexWidget.Core.csproj" />
+    <ProjectReference Include="..\CodexWidget.Presentation\CodexWidget.Presentation.csproj" />
+    <ProjectReference Include="..\CodexWidget.Runtime\CodexWidget.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

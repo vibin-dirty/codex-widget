@@ -1,0 +1,48 @@
+# Source control and CI metadata
+.git
+.git/**
+.github
+
+# Build outputs and local artifacts
+**/bin/
+**/obj/
+artifacts/
+out/
+publish/
+
+# Logs and temporary files
+*.log
+logs/
+**/logs/
+tmp/
+temp/
+**/tmp/
+**/temp/
+*.tmp
+*.temp
+
+# Editor and OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Codex/local profile data and auth/token material (real or synthetic)
+.codex/
+**/.codex/
+**/.codex/**
+codex-profiles/
+**/codex-profiles/
+**/profiles/
+**/profile-snapshot/
+**/profile-snapshots/
+**/profile-snapshot/**
+**/profile-snapshots/**
+**/auth/
+**/auth/**
+**/auth-snapshot/
+**/auth-snapshots/
+**/auth-snapshot/**
+**/auth-snapshots/**
+**/*.token
+**/*.tokens.json

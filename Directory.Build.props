@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <Company>Codex Widget Contributors</Company>
+    <Product>CodexWidget</Product>
+    <Authors>Codex Widget Contributors</Authors>
+    <AssemblyTitle>$(MSBuildProjectName)</AssemblyTitle>
+  </PropertyGroup>
+</Project>

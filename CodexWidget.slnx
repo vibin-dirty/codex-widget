@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CodexWidget.App/CodexWidget.App.csproj" />
+    <Project Path="src/CodexWidget.Core/CodexWidget.Core.csproj" />
+    <Project Path="src/CodexWidget.Presentation/CodexWidget.Presentation.csproj" />
+    <Project Path="src/CodexWidget.Profiles/CodexWidget.Profiles.csproj" />
+    <Project Path="src/CodexWidget.Runtime/CodexWidget.Runtime.csproj" />
+    <Project Path="src/CodexWidget.Status/CodexWidget.Status.csproj" />
+    <Project Path="src/CodexWidget.Usage/CodexWidget.Usage.csproj" />
+    <Project Path="src/CodexWidget.Web/CodexWidget.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CodexWidget.App.Tests/CodexWidget.App.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Core.Tests/CodexWidget.Core.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Presentation.Tests/CodexWidget.Presentation.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Profiles.Tests/CodexWidget.Profiles.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Runtime.Tests/CodexWidget.Runtime.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Status.Tests/CodexWidget.Status.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Usage.Tests/CodexWidget.Usage.Tests.csproj" />
+    <Project Path="tests/CodexWidget.Web.Tests/CodexWidget.Web.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,39 @@
+# Trusted-LAN Compose shape for codex-widget web hosting.
+# Default project name is codex-widget; override with COMPOSE_PROJECT_NAME when needed.
+name: ${COMPOSE_PROJECT_NAME:-codex-widget}
+
+services:
+  codex-widget:
+    image: codex-widget-web:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8787
+      CodexWidgetWeb__AllowLanBinding: "true"
+      CodexWidgetWeb__EnableCors: "false"
+      # Keep this path aligned with the mounted codex-profiles data directory.
+      CodexWidgetWeb__CodexProfilesHome: /var/lib/codex-widget/codex-profiles
+    volumes:
+      - type: bind
+        source: ${CODEX_WIDGET_DATA_DIR:-/srv/data/codex-widget}
+        target: /var/lib/codex-widget/codex-profiles
+        read_only: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          if command -v wget >/dev/null 2>&1; then
+            wget -qO- http://127.0.0.1:8787/health >/dev/null;
+          elif command -v curl >/dev/null 2>&1; then
+            curl -fsS http://127.0.0.1:8787/health >/dev/null;
+          else
+            exit 1;
+          fi
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

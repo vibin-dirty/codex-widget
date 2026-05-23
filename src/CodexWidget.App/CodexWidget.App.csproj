@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodexWidget.Core\CodexWidget.Core.csproj" />
+    <ProjectReference Include="..\CodexWidget.Presentation\CodexWidget.Presentation.csproj" />
+    <ProjectReference Include="..\CodexWidget.Profiles\CodexWidget.Profiles.csproj" />
+    <ProjectReference Include="..\CodexWidget.Runtime\CodexWidget.Runtime.csproj" />
+    <ProjectReference Include="..\CodexWidget.Status\CodexWidget.Status.csproj" />
+    <ProjectReference Include="..\CodexWidget.Usage\CodexWidget.Usage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\tray-icon.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Description>Desktop tray widget for Codex profile and usage status.</Description>
+    <Copyright>Copyright (c) Codex Widget Contributors</Copyright>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Codex Usage</title>
+    <meta name="description" content="Compact Codex profile usage status.">
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="/js/app.js" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to usage status</a>
+
+    <main id="main-content" class="widget-shell" aria-busy="true">
+        <section class="usage-widget" aria-labelledby="usage-title">
+            <header class="widget-header">
+                <h1 id="usage-title">Codex Usage</h1>
+                <p id="status-line" class="status-line" role="status" aria-live="polite">Loading usage...</p>
+            </header>
+
+            <div id="status-board" class="status-board" aria-live="polite">
+                <p class="empty-state">Loading usage...</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="live-announcements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
