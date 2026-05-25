@@ -12,6 +12,7 @@ internal static class WidgetViewFactory
 {
     private const double SectionRadius = 6;
     private const double SectionBorderThickness = 1;
+    private static WidgetThemePalette Palette => WidgetVisualStyles.CurrentPalette;
 
     public static Control CreateMinimalView(
         WidgetPresentationState state,
@@ -99,7 +100,7 @@ internal static class WidgetViewFactory
             window.AvailabilityText));
         card.Children.Add(CreateMetricProgressBlock("Quota left", window.QuotaLeftPercent, window.QuotaText));
         card.Children.Add(CreateMetricProgressBlock("Time left", window.TimeLeftPercent, window.TimeText));
-        card.Children.Add(CreateBodyText(window.EndsAtText, brush: Brushes.Gray));
+        card.Children.Add(CreateBodyText(window.EndsAtText, brush: Palette.MutedTextBrush));
         return WrapCard(card);
     }
 
@@ -109,9 +110,9 @@ internal static class WidgetViewFactory
         panel.Children.Add(CreateSectionLabel("Refresh status"));
         panel.Children.Add(CreateBodyText(refresh.StateText));
         panel.Children.Add(CreateBodyText(refresh.DetailText));
-        panel.Children.Add(CreateBodyText(refresh.CapturedAtText, brush: Brushes.Gray));
-        panel.Children.Add(CreateBodyText(refresh.SnapshotAgeText, brush: Brushes.Gray));
-        panel.Children.Add(CreateBodyText(refresh.NextScheduledRefreshText, brush: Brushes.Gray));
+        panel.Children.Add(CreateBodyText(refresh.CapturedAtText, brush: Palette.MutedTextBrush));
+        panel.Children.Add(CreateBodyText(refresh.SnapshotAgeText, brush: Palette.MutedTextBrush));
+        panel.Children.Add(CreateBodyText(refresh.NextScheduledRefreshText, brush: Palette.MutedTextBrush));
         return WrapCard(panel);
     }
 
@@ -131,8 +132,8 @@ internal static class WidgetViewFactory
             var sourcePanel = new StackPanel { Spacing = 2 };
             sourcePanel.Children.Add(CreateBodyText(source.SourceText, weight: FontWeight.Medium));
             sourcePanel.Children.Add(CreateBodyText(source.StateText));
-            sourcePanel.Children.Add(CreateBodyText(source.AvailabilityText, brush: Brushes.Gray));
-            sourcePanel.Children.Add(CreateBodyText(source.ObservedAtText, brush: Brushes.Gray));
+            sourcePanel.Children.Add(CreateBodyText(source.AvailabilityText, brush: Palette.MutedTextBrush));
+            sourcePanel.Children.Add(CreateBodyText(source.ObservedAtText, brush: Palette.MutedTextBrush));
             foreach (var diagnostic in source.Diagnostics)
             {
                 sourcePanel.Children.Add(CreateDiagnosticLine(diagnostic));
@@ -167,7 +168,7 @@ internal static class WidgetViewFactory
 
         if (profile.Diagnostics.Count == 0)
         {
-            panel.Children.Add(CreateBodyText("Profile diagnostics: none.", brush: Brushes.Gray));
+            panel.Children.Add(CreateBodyText("Profile diagnostics: none.", brush: Palette.MutedTextBrush));
         }
         else
         {
@@ -223,7 +224,7 @@ internal static class WidgetViewFactory
             window.AvailabilityText));
         panel.Children.Add(CreateBodyText(window.QuotaText));
         panel.Children.Add(CreateBodyText(window.TimeText));
-        panel.Children.Add(CreateBodyText(window.EndsAtText, brush: Brushes.Gray));
+        panel.Children.Add(CreateBodyText(window.EndsAtText, brush: Palette.MutedTextBrush));
         return WrapCard(panel, compact: true);
     }
 
@@ -274,7 +275,7 @@ internal static class WidgetViewFactory
         }
 
         panel.Children.Add(CreateBodyText(bucket.BucketIdentityText));
-        panel.Children.Add(CreateBodyText(bucket.FetchStatusText, brush: Brushes.Gray));
+        panel.Children.Add(CreateBodyText(bucket.FetchStatusText, brush: Palette.MutedTextBrush));
         panel.Children.Add(CreateBadge(
             WidgetVisualStyles.ResolveAvailabilityToken(bucket.Availability),
             bucket.AvailabilityText));
@@ -309,7 +310,7 @@ internal static class WidgetViewFactory
             Value = clampedPercent,
             Height = 10,
             Foreground = metricToken.BorderBrush,
-            Background = new SolidColorBrush(Color.Parse("#FFE8EDF4")),
+            Background = Palette.ProgressTrackBrush,
             IsEnabled = percent.HasValue,
         };
         AutomationProperties.SetName(progress, detailText);
@@ -339,11 +340,11 @@ internal static class WidgetViewFactory
         {
             foreach (var pair in diagnostic.Context)
             {
-                panel.Children.Add(CreateBodyText($"{pair.Key}: {pair.Value}", brush: Brushes.Gray));
+                panel.Children.Add(CreateBodyText($"{pair.Key}: {pair.Value}", brush: Palette.MutedTextBrush));
             }
         }
 
-        panel.Children.Add(CreateBodyText(diagnostic.ObservedAtText, brush: Brushes.Gray));
+        panel.Children.Add(CreateBodyText(diagnostic.ObservedAtText, brush: Palette.MutedTextBrush));
         return WrapCard(panel, compact: true);
     }
 
@@ -360,7 +361,8 @@ internal static class WidgetViewFactory
     {
         return new Border
         {
-            BorderBrush = new SolidColorBrush(Color.Parse("#FFD7E0EB")),
+            Background = Palette.WidgetCardBrush,
+            BorderBrush = Palette.WidgetBorderBrush,
             BorderThickness = new Thickness(SectionBorderThickness),
             CornerRadius = new CornerRadius(SectionRadius),
             Padding = compact ? new Thickness(6) : new Thickness(8),
@@ -383,6 +385,7 @@ internal static class WidgetViewFactory
             Text = text,
             FontSize = 12,
             FontWeight = FontWeight.SemiBold,
+            Foreground = Palette.PrimaryTextBrush,
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 330,
         };
@@ -397,7 +400,7 @@ internal static class WidgetViewFactory
 
     private static TextBlock CreateUnavailableText(string text)
     {
-        return CreateBodyText(text, brush: Brushes.Gray);
+        return CreateBodyText(text, brush: Palette.MutedTextBrush);
     }
 
     private static TextBlock CreateBodyText(
@@ -409,7 +412,7 @@ internal static class WidgetViewFactory
         var block = new TextBlock
         {
             Text = text,
-            Foreground = brush ?? Brushes.Black,
+            Foreground = brush ?? Palette.PrimaryTextBrush,
             FontWeight = weight ?? FontWeight.Normal,
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = width ?? 340,

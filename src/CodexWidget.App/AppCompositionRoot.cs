@@ -12,6 +12,7 @@ namespace CodexWidget.App;
 internal sealed class AppCompositionRoot : IDisposable
 {
     private const string AppAssetUri = "avares://CodexWidget.App/Assets/tray-icon.ico";
+    private const string ValidationOpenSettingsEnvironmentVariable = "CODEX_WIDGET_VALIDATION_OPEN_SETTINGS";
     private const int PositionMargin = 16;
     private const int PlacementSaveDebounceMilliseconds = 400;
 
@@ -43,6 +44,7 @@ internal sealed class AppCompositionRoot : IDisposable
             _statusRuntime.PreferenceStore,
             _statusRuntime.Preferences,
             ApplyPreferencesFromSettings);
+        ApplyThemePreference(_statusRuntime.Preferences.Theme);
         _preferenceLoadNotice = BuildPreferenceLoadNotice(_statusRuntime.PreferenceLoadResult, _statusRuntime.PreferenceFilePath);
         var windowIcon = LoadAppIcon();
         _widgetWindow = new WidgetWindow(windowIcon);
@@ -101,6 +103,7 @@ internal sealed class AppCompositionRoot : IDisposable
         UpdateWidgetFromSnapshot(_statusRuntime.CurrentSnapshot);
         RestoreWidgetPlacementOrReset();
         ShowAndActivateWidget();
+        QueueValidationSettingsWindowIfRequested();
         StartSchedulerOnce();
     }
 
@@ -140,6 +143,14 @@ internal sealed class AppCompositionRoot : IDisposable
     {
         using var iconStream = AssetLoader.Open(new Uri(AppAssetUri));
         return new WindowIcon(iconStream);
+    }
+
+    internal static bool ShouldOpenValidationSettingsWindow()
+    {
+        return string.Equals(
+            Environment.GetEnvironmentVariable(ValidationOpenSettingsEnvironmentVariable),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnTrayIconClicked(object? sender, EventArgs e)
@@ -183,6 +194,26 @@ internal sealed class AppCompositionRoot : IDisposable
             settingsWindow.Show(_widgetWindow);
             settingsWindow.Activate();
         }
+    }
+
+    private void QueueValidationSettingsWindowIfRequested()
+    {
+        if (!ShouldOpenValidationSettingsWindow())
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (_isDisposed || _isQuitting)
+                {
+                    return;
+                }
+
+                OnSettingsMenuClicked(this, EventArgs.Empty);
+            },
+            DispatcherPriority.Background);
     }
 
     private void OnResetPositionMenuClicked(object? sender, EventArgs e)
@@ -506,6 +537,7 @@ internal sealed class AppCompositionRoot : IDisposable
         _preferenceCoordinator.UpdateCurrentPreferences(preferences);
 
         _selectedViewOverride = preferences.SelectedView;
+        ApplyThemePreference(preferences.Theme);
         ApplyTopmostPreference(preferences.AlwaysOnTop, persistPreference: false);
         _runtimeNotice = null;
         UpdateWidgetFromSnapshot(_statusRuntime.CurrentSnapshot);
@@ -813,5 +845,13 @@ internal sealed class AppCompositionRoot : IDisposable
             workArea,
             GetWidgetWindowPixelSize(),
             PositionMargin);
+    }
+
+    private static void ApplyThemePreference(WidgetThemePreference theme)
+    {
+        if (Application.Current is App app)
+        {
+            app.ApplyThemePreference(theme);
+        }
     }
 }

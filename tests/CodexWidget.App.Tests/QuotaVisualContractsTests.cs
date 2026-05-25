@@ -1,6 +1,7 @@
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using CodexWidget.App.Presentation.QuotaVisuals;
+using CodexWidget.Core;
 
 namespace CodexWidget.App.Tests;
 
@@ -104,6 +105,26 @@ public sealed class QuotaVisualContractsTests
         AssertBrushColor(QuotaVisualStyles.QuotaTextBrush, QuotaVisualStyles.QuotaTextColor);
         AssertBrushColor(QuotaVisualStyles.QuotaUnavailableBrush, QuotaVisualStyles.QuotaUnavailableColor);
     }
+
+    [Fact]
+    public void QuotaVisualStyles_DarkModeTokensUseReadableDarkContrast()
+    {
+        Assert.Equal(Color.Parse("#FF35D07F"), QuotaVisualStyles.ResolveQuotaFillColor(
+            WidgetThemePreference.Dark,
+            50,
+            50,
+            useSurplusFillColors: false));
+        Assert.Equal(Color.Parse("#FF60A5FA"), QuotaVisualStyles.ResolveQuotaFillColor(
+            WidgetThemePreference.Dark,
+            80,
+            50,
+            useSurplusFillColors: true));
+        Assert.Equal(Color.Parse("#FF344253"), QuotaVisualStyles.ResolveQuotaTrackColor(WidgetThemePreference.Dark));
+        Assert.Equal(Color.Parse("#FFE8EEF6"), QuotaVisualStyles.ResolveQuotaMarkerColor(WidgetThemePreference.Dark));
+        Assert.Equal(Color.Parse("#FFE8EEF6"), QuotaVisualStyles.ResolveQuotaTextColor(WidgetThemePreference.Dark));
+        Assert.Equal(Color.Parse("#FF536171"), QuotaVisualStyles.ResolveQuotaUnavailableColor(WidgetThemePreference.Dark));
+    }
+
 
     [Theory]
     [InlineData(4, 20, true, "#FFDC2626")]

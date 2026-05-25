@@ -40,15 +40,8 @@ internal static class WidgetCompactViewFactory
     private const double TimestampLeft = PercentLeft + PercentWidth + PercentToTimestampSpacing;
     private const double QuotaRowWidth = TimestampLeft + TimestampWidth;
 
-    private static readonly IBrush SurfaceBrush = new SolidColorBrush(Color.Parse("#FFE9EDF2"));
-    private static readonly IBrush CardBrush = new SolidColorBrush(Color.Parse("#FFE9EDF2"));
-    private static readonly IBrush BorderBrush = new SolidColorBrush(Color.Parse("#FFD9E1EB"));
-    private static readonly IBrush PrimaryTextBrush = new SolidColorBrush(Color.Parse("#FF101820"));
-    private static readonly IBrush SecondaryTextBrush = new SolidColorBrush(Color.Parse("#FF4D5968"));
-    private static readonly IBrush ActiveTextBrush = new SolidColorBrush(Color.Parse("#FF087047"));
-    private static readonly IBrush ActiveDotBrush = new SolidColorBrush(Color.Parse("#FF17A35B"));
-    private static readonly IBrush PercentBadgeBrush = new SolidColorBrush(Color.Parse("#FFE8F7EF"));
     private static readonly FontFamily TextFont = new("Segoe UI");
+    private static WidgetThemePalette Palette => WidgetVisualStyles.CurrentPalette;
 
     public static Control Create(
         WidgetPresentationState state,
@@ -62,11 +55,11 @@ internal static class WidgetCompactViewFactory
 
         var root = new Border
         {
-            Background = SurfaceBrush,
-            BorderBrush = BorderBrush,
+            Background = Palette.WidgetSurfaceBrush,
+            BorderBrush = Palette.WidgetBorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            BoxShadow = BoxShadows.Parse("0 1 6 0 #12000000"),
+            BoxShadow = BoxShadows.Parse(Palette.WidgetShadow),
         };
 
         var rootGrid = new Grid
@@ -95,7 +88,7 @@ internal static class WidgetCompactViewFactory
     {
         var headerBorder = new Border
         {
-            BorderBrush = BorderBrush,
+            BorderBrush = Palette.WidgetBorderBrush,
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(14, 6, 12, 6),
         };
@@ -112,7 +105,7 @@ internal static class WidgetCompactViewFactory
             FontSize = 15,
             FontFamily = TextFont,
             FontWeight = FontWeight.Bold,
-            Foreground = PrimaryTextBrush,
+            Foreground = Palette.PrimaryTextBrush,
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
@@ -159,8 +152,8 @@ internal static class WidgetCompactViewFactory
         {
             var emptyState = new Border
             {
-                Background = CardBrush,
-                BorderBrush = BorderBrush,
+                Background = Palette.WidgetCardBrush,
+                BorderBrush = Palette.WidgetBorderBrush,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(6),
@@ -170,7 +163,7 @@ internal static class WidgetCompactViewFactory
                     Text = "No accounts yet.",
                     FontSize = 11,
                     FontFamily = TextFont,
-                    Foreground = SecondaryTextBrush,
+                    Foreground = Palette.SecondaryTextBrush,
                     TextWrapping = TextWrapping.NoWrap,
                     TextTrimming = TextTrimming.CharacterEllipsis,
                 },
@@ -217,8 +210,8 @@ internal static class WidgetCompactViewFactory
         var normalizedLayout = NormalizeCompactLayout(layout);
         var block = new Border
         {
-            Background = CardBrush,
-            BorderBrush = BorderBrush,
+            Background = Palette.WidgetCardBrush,
+            BorderBrush = Palette.WidgetBorderBrush,
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(0),
             HorizontalAlignment = normalizedLayout == CompactAccountLayout.Horizontal
@@ -275,7 +268,7 @@ internal static class WidgetCompactViewFactory
             FontSize = 13,
             FontFamily = TextFont,
             FontWeight = FontWeight.Bold,
-            Foreground = PrimaryTextBrush,
+            Foreground = Palette.PrimaryTextBrush,
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
@@ -294,7 +287,7 @@ internal static class WidgetCompactViewFactory
             };
             activeContent.Children.Add(new Border
             {
-                Background = ActiveDotBrush,
+                Background = Palette.ActiveDotBrush,
                 Width = 7,
                 Height = 7,
                 CornerRadius = new CornerRadius(4),
@@ -306,14 +299,15 @@ internal static class WidgetCompactViewFactory
                 FontSize = 10,
                 FontFamily = TextFont,
                 FontWeight = FontWeight.Medium,
-                Foreground = ActiveTextBrush,
+                Foreground = Palette.ActiveTextBrush,
                 TextWrapping = TextWrapping.NoWrap,
                 VerticalAlignment = VerticalAlignment.Center,
             });
 
             var active = new Border
             {
-                BorderBrush = BorderBrush,
+                Background = Palette.ActiveBadgeBackgroundBrush,
+                BorderBrush = Palette.WidgetBorderBrush,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(7),
                 Padding = new Thickness(6, 1),
@@ -358,7 +352,7 @@ internal static class WidgetCompactViewFactory
             FontSize = 9.5,
             FontFamily = TextFont,
             FontWeight = FontWeight.SemiBold,
-            Foreground = SecondaryTextBrush,
+            Foreground = Palette.SecondaryTextBrush,
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextAlignment = TextAlignment.Center,
@@ -385,7 +379,7 @@ internal static class WidgetCompactViewFactory
 
         var groupHost = new Border
         {
-            BorderBrush = BorderBrush,
+            BorderBrush = Palette.WidgetBorderBrush,
             BorderThickness = string.Equals(groupLabel, SparkGroupLabel, StringComparison.Ordinal)
                 ? new Thickness(0, 1, 0, 0)
                 : new Thickness(0),
@@ -414,7 +408,7 @@ internal static class WidgetCompactViewFactory
             FontSize = 12,
             FontFamily = TextFont,
             FontWeight = FontWeight.Medium,
-            Foreground = PrimaryTextBrush,
+            Foreground = Palette.PrimaryTextBrush,
             Width = RowLabelWidth,
             MinWidth = RowLabelWidth,
             TextWrapping = TextWrapping.NoWrap,
@@ -442,7 +436,7 @@ internal static class WidgetCompactViewFactory
         var timestamp = WidgetWindowQuotaVisualFactory.CreateEndsAtTextBlock(window);
         timestamp.FontSize = 11;
         timestamp.FontFamily = TextFont;
-        timestamp.Foreground = SecondaryTextBrush;
+        timestamp.Foreground = Palette.SecondaryTextBrush;
         timestamp.TextWrapping = TextWrapping.NoWrap;
         timestamp.TextTrimming = TextTrimming.CharacterEllipsis;
         timestamp.Width = TimestampWidth;
@@ -470,7 +464,7 @@ internal static class WidgetCompactViewFactory
             FontSize = 10,
             FontFamily = TextFont,
             FontWeight = FontWeight.SemiBold,
-            Foreground = ActiveTextBrush,
+            Foreground = Palette.ActiveTextBrush,
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextAlignment = TextAlignment.Center,
@@ -479,7 +473,7 @@ internal static class WidgetCompactViewFactory
         };
         var badge = new Border
         {
-            Background = PercentBadgeBrush,
+            Background = Palette.PercentBadgeBrush,
             CornerRadius = new CornerRadius(7),
             Width = PercentWidth,
             Height = 16,
@@ -539,7 +533,7 @@ internal static class WidgetCompactViewFactory
                 FontSize = 14,
                 FontFamily = TextFont,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = PrimaryTextBrush,
+                Foreground = isEnabled ? Palette.PrimaryTextBrush : Palette.MutedTextBrush,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             },

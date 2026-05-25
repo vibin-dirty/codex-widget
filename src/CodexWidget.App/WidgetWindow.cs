@@ -56,6 +56,7 @@ internal sealed class WidgetWindow : Window
     {
         ArgumentNullException.ThrowIfNull(state);
         _presentationState = state;
+        Background = WidgetVisualStyles.CurrentPalette.WidgetSurfaceBrush;
         _visibleModeHost.SetPresentationState(state);
         ApplyVisibleModeWindowLayout(state, _visibleModeHost.SelectedVisibleView);
     }

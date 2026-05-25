@@ -27,7 +27,7 @@ internal static class WidgetMinimalViewFactory
     private const double RingDiameter = 58;
     private const double RingCenterFontSize = 12;
     private static readonly FontFamily TextFont = new("Segoe UI");
-    private static readonly IBrush PrimaryTextBrush = new SolidColorBrush(Color.Parse("#FF101820"));
+    private static WidgetThemePalette Palette => WidgetVisualStyles.CurrentPalette;
 
     public static Control Create(
         WidgetPresentationState state,
@@ -43,11 +43,11 @@ internal static class WidgetMinimalViewFactory
 
         var root = new Border
         {
-            Background = new SolidColorBrush(Color.Parse("#FFE9EDF2")),
-            BorderBrush = new SolidColorBrush(Color.Parse("#FFD9E1EB")),
+            Background = Palette.WidgetSurfaceBrush,
+            BorderBrush = Palette.WidgetBorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
-            BoxShadow = BoxShadows.Parse("0 1 6 0 #12000000"),
+            BoxShadow = BoxShadows.Parse(Palette.WidgetShadow),
             Padding = new Thickness(7),
             Width = TargetWidth,
             MinWidth = TargetWidth,
@@ -90,7 +90,7 @@ internal static class WidgetMinimalViewFactory
             FontSize = 13,
             FontFamily = TextFont,
             FontWeight = FontWeight.SemiBold,
-            Foreground = PrimaryTextBrush,
+            Foreground = Palette.PrimaryTextBrush,
             TextWrapping = TextWrapping.Wrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxWidth = HeaderProfileMaxWidth,
@@ -138,10 +138,10 @@ internal static class WidgetMinimalViewFactory
             {
                 Text = glyph,
                 FontSize = 12,
-                FontFamily = TextFont,
-                FontWeight = FontWeight.SemiBold,
-                Foreground = PrimaryTextBrush,
-                HorizontalAlignment = HorizontalAlignment.Center,
+            FontFamily = TextFont,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = isEnabled ? Palette.PrimaryTextBrush : Palette.MutedTextBrush,
+            HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             },
             Width = CommandButtonSize,
@@ -196,7 +196,7 @@ internal static class WidgetMinimalViewFactory
             FontSize = 11,
             FontFamily = TextFont,
             FontWeight = FontWeight.Medium,
-            Foreground = PrimaryTextBrush,
+            Foreground = Palette.PrimaryTextBrush,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.NoWrap,
@@ -215,7 +215,7 @@ internal static class WidgetMinimalViewFactory
 
         var timestamp = WidgetWindowQuotaVisualFactory.CreateEndsAtTextBlock(resolvedWindow);
         timestamp.FontSize = 11;
-        timestamp.Foreground = new SolidColorBrush(Color.Parse("#FF5F6E80"));
+        timestamp.Foreground = Palette.MutedTextBrush;
         timestamp.TextWrapping = TextWrapping.NoWrap;
         timestamp.TextTrimming = TextTrimming.CharacterEllipsis;
         timestamp.MaxWidth = SlotWidth;

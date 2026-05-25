@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -8,12 +9,18 @@ namespace CodexWidget.App;
 
 internal sealed class SettingsWindow : Window
 {
+    internal const string ThemeSelectorAutomationName = "Theme";
+
     private readonly WidgetPreferenceCoordinator _preferenceCoordinator;
     private readonly ComboBox _selectedViewComboBox;
+    private readonly ComboBox _themeComboBox;
     private readonly NumericUpDown _widgetScaleInput;
     private readonly CheckBox _alwaysOnTopCheckBox;
     private readonly NumericUpDown _refreshPeriodInput;
     private readonly TextBlock _statusTextBlock;
+    private readonly Border _contentBorder;
+    private readonly List<TextBlock> _fieldLabels = [];
+    private readonly List<TextBlock> _hintTextBlocks = [];
 
     public SettingsWindow(WindowIcon? icon, WidgetPreferenceCoordinator preferenceCoordinator)
     {
@@ -22,11 +29,11 @@ internal sealed class SettingsWindow : Window
         Title = "Settings";
         Icon = icon;
         Width = 420;
-        Height = 370;
+        Height = 400;
         MinWidth = 420;
-        MinHeight = 370;
+        MinHeight = 400;
         MaxWidth = 420;
-        MaxHeight = 370;
+        MaxHeight = 400;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
@@ -36,6 +43,11 @@ internal sealed class SettingsWindow : Window
             SelectedIndex = 1,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
+        _themeComboBox = new ComboBox
+        {
+            SelectedIndex = 0,
+        };
+        ConfigureThemeSelector(_themeComboBox);
         _alwaysOnTopCheckBox = new CheckBox
         {
             Content = "Keep widget above other windows",
@@ -53,15 +65,15 @@ internal sealed class SettingsWindow : Window
         {
             FontSize = 12,
             TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.Gray,
             MaxWidth = 380,
         };
 
-        Content = new Border
+        _contentBorder = new Border
         {
             Padding = new Thickness(16),
             Child = BuildContent()
         };
+        Content = _contentBorder;
 
         ReloadFromPreferences();
     }
@@ -70,6 +82,7 @@ internal sealed class SettingsWindow : Window
     {
         ApplyDraftToControls(_preferenceCoordinator.CreateDraft());
         _statusTextBlock.Text = string.Empty;
+        ApplyThemeStyles(ResolveSelectedTheme());
     }
 
     private Control BuildContent()
@@ -86,6 +99,7 @@ internal sealed class SettingsWindow : Window
             Children =
             {
                 CreateFieldRow("Selected view", _selectedViewComboBox),
+                CreateFieldRow("Theme", _themeComboBox),
                 CreateFieldRow("Always on top", _alwaysOnTopCheckBox),
                 CreateFieldRow("Widget scale (%)", _widgetScaleInput),
                 CreateFieldRow("Refresh period (seconds)", _refreshPeriodInput),
@@ -142,35 +156,48 @@ internal sealed class SettingsWindow : Window
         };
     }
 
-    private static Control CreateFieldRow(string label, Control control)
+    internal static void ConfigureThemeSelector(ComboBox comboBox)
+    {
+        ArgumentNullException.ThrowIfNull(comboBox);
+
+        comboBox.ItemsSource = new[] { WidgetThemePreference.Light, WidgetThemePreference.Dark };
+        comboBox.HorizontalAlignment = HorizontalAlignment.Stretch;
+        comboBox.MinWidth = 180;
+        AutomationProperties.SetName(comboBox, ThemeSelectorAutomationName);
+    }
+
+    private Control CreateFieldRow(string label, Control control)
     {
         var row = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             ColumnSpacing = 12,
         };
-        row.Children.Add(new TextBlock
+        var labelBlock = new TextBlock
         {
             Text = label,
             FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 190,
-        });
+        };
+        _fieldLabels.Add(labelBlock);
+        row.Children.Add(labelBlock);
         Grid.SetColumn(control, 1);
         row.Children.Add(control);
         return row;
     }
 
-    private static TextBlock CreateHintText(string text)
+    private TextBlock CreateHintText(string text)
     {
-        return new TextBlock
+        var hint = new TextBlock
         {
             Text = text,
             FontSize = 11,
-            Foreground = Brushes.Gray,
             TextWrapping = TextWrapping.Wrap,
         };
+        _hintTextBlocks.Add(hint);
+        return hint;
     }
 
     private WidgetPreferenceDraft BuildDraftFromControls()
@@ -185,15 +212,20 @@ internal sealed class SettingsWindow : Window
             WidgetScalePercent = ReadInt(_widgetScaleInput, WidgetPreferenceDefaults.DefaultWidgetScalePercent),
             AlwaysOnTop = _alwaysOnTopCheckBox.IsChecked ?? WidgetPreferenceDefaults.DefaultAlwaysOnTop,
             RefreshPeriodSeconds = ReadInt(_refreshPeriodInput, WidgetPreferenceDefaults.DefaultRefreshPeriodSeconds),
+            Theme = ResolveSelectedTheme(),
         };
     }
 
     private void ApplyDraftToControls(WidgetPreferenceDraft draft)
     {
         _selectedViewComboBox.SelectedItem = draft.SelectedView;
+        _themeComboBox.SelectedItem = Enum.IsDefined(draft.Theme)
+            ? draft.Theme
+            : WidgetPreferenceDefaults.DefaultTheme;
         _widgetScaleInput.Value = draft.WidgetScalePercent;
         _alwaysOnTopCheckBox.IsChecked = draft.AlwaysOnTop;
         _refreshPeriodInput.Value = draft.RefreshPeriodSeconds;
+        ApplyThemeStyles(ResolveSelectedTheme());
     }
 
     private void OnSaveClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -205,10 +237,39 @@ internal sealed class SettingsWindow : Window
             ApplyDraftToControls(_preferenceCoordinator.CreateDraft());
         }
 
-        _statusTextBlock.Foreground = outcome.Succeeded ? Brushes.DarkGreen : Brushes.IndianRed;
+        var palette = WidgetVisualStyles.ResolvePalette(ResolveSelectedTheme());
+        _statusTextBlock.Foreground = outcome.Succeeded ? palette.SuccessTextBrush : palette.ErrorTextBrush;
         _statusTextBlock.Text = outcome.Messages.Count == 0
             ? (outcome.Succeeded ? "Preferences saved." : "Preferences could not be saved.")
             : string.Join(" ", outcome.Messages);
+    }
+
+    private WidgetThemePreference ResolveSelectedTheme()
+    {
+        return _themeComboBox.SelectedItem is WidgetThemePreference theme && Enum.IsDefined(theme)
+            ? theme
+            : WidgetPreferenceDefaults.DefaultTheme;
+    }
+
+    private void ApplyThemeStyles(WidgetThemePreference theme)
+    {
+        var palette = WidgetVisualStyles.ResolvePalette(theme);
+        Background = palette.SettingsSurfaceBrush;
+        _contentBorder.Background = palette.SettingsPanelBrush;
+        _contentBorder.BorderBrush = palette.SettingsBorderBrush;
+        _contentBorder.BorderThickness = new Thickness(1);
+        _contentBorder.CornerRadius = new CornerRadius(6);
+        _statusTextBlock.Foreground = palette.MutedTextBrush;
+
+        foreach (var label in _fieldLabels)
+        {
+            label.Foreground = palette.PrimaryTextBrush;
+        }
+
+        foreach (var hint in _hintTextBlocks)
+        {
+            hint.Foreground = palette.MutedTextBrush;
+        }
     }
 
     private static int ReadInt(NumericUpDown input, int fallback)

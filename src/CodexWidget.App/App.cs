@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using CodexWidget.Core;
 
 namespace CodexWidget.App;
 
@@ -13,6 +14,7 @@ internal sealed class App : Application
     public override void Initialize()
     {
         Styles.Add(new FluentTheme());
+        RequestedThemeVariant = ThemeVariant.Light;
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -37,5 +39,14 @@ internal sealed class App : Application
 
         _compositionRoot?.Dispose();
         _compositionRoot = null;
+    }
+
+    internal void ApplyThemePreference(WidgetThemePreference theme)
+    {
+        RequestedThemeVariant = theme switch
+        {
+            WidgetThemePreference.Dark => ThemeVariant.Dark,
+            _ => ThemeVariant.Light,
+        };
     }
 }
