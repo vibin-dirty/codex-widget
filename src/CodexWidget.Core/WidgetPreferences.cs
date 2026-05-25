@@ -13,6 +13,12 @@ public enum CompactAccountLayout
     Horizontal = 1,
 }
 
+public enum WidgetThemePreference
+{
+    Light = 0,
+    Dark = 1,
+}
+
 public sealed record WindowPlacementPreferences
 {
     public int X { get; init; } = WidgetPreferenceDefaults.DefaultWindowX;
@@ -40,12 +46,14 @@ public sealed record WidgetPreferences
 
     public int RefreshPeriodSeconds { get; init; } = WidgetPreferenceDefaults.DefaultRefreshPeriodSeconds;
 
+    public WidgetThemePreference Theme { get; init; } = WidgetPreferenceDefaults.DefaultTheme;
+
     public WindowPlacementPreferences WindowPlacement { get; init; } = new();
 }
 
 public static class WidgetPreferenceDefaults
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public const WidgetViewKind DefaultSelectedView = WidgetViewKind.Compact;
 
@@ -66,6 +74,8 @@ public static class WidgetPreferenceDefaults
     public const int MinimumRefreshPeriodSeconds = 60;
 
     public const int MaximumRefreshPeriodSeconds = 24 * 60 * 60;
+
+    public const WidgetThemePreference DefaultTheme = WidgetThemePreference.Light;
 
     public const int DefaultWindowX = 0;
 

@@ -18,6 +18,7 @@ public sealed class PreferenceStoreTests
         Assert.Equal(300, defaults.RefreshPeriodSeconds);
         Assert.Equal(60, WidgetPreferenceDefaults.MinimumRefreshPeriodSeconds);
         Assert.Equal(24 * 60 * 60, WidgetPreferenceDefaults.MaximumRefreshPeriodSeconds);
+        Assert.Equal(WidgetThemePreference.Light, defaults.Theme);
     }
 
     [Fact]
@@ -49,6 +50,7 @@ public sealed class PreferenceStoreTests
             WidgetScalePercent = 130,
             AlwaysOnTop = false,
             RefreshPeriodSeconds = 601,
+            Theme = WidgetThemePreference.Dark,
             WindowPlacement = new WindowPlacementPreferences
             {
                 X = 15,
@@ -74,6 +76,7 @@ public sealed class PreferenceStoreTests
         Assert.Contains("\"widgetScalePercent\"", json, StringComparison.Ordinal);
         Assert.Contains("\"alwaysOnTop\"", json, StringComparison.Ordinal);
         Assert.Contains("\"refreshPeriodSeconds\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"theme\"", json, StringComparison.Ordinal);
         Assert.DoesNotContain("\"warningThresholds\"", json, StringComparison.Ordinal);
         Assert.Contains("\"windowPlacement\"", json, StringComparison.Ordinal);
 
@@ -138,6 +141,24 @@ public sealed class PreferenceStoreTests
     }
 
     [Fact]
+    public void Save_SerializesThemeField()
+    {
+        using var directory = new TemporaryDirectory();
+        var filePath = Path.Combine(directory.Path, "settings.json");
+        var store = new PreferenceStore(new FixedPreferencePathProvider(filePath));
+        var preferences = WidgetPreferenceDefaults.Create() with
+        {
+            Theme = WidgetThemePreference.Dark,
+        };
+
+        var saveResult = store.Save(preferences);
+
+        Assert.True(saveResult.Availability.IsAvailable);
+        var json = File.ReadAllText(filePath);
+        Assert.Contains("\"theme\": \"Dark\"", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Load_Schema1_MigratesToCurrentSchemaWithVerticalCompactLayoutAndDefaultScale()
     {
         using var directory = new TemporaryDirectory();
@@ -165,6 +186,7 @@ public sealed class PreferenceStoreTests
         Assert.Equal(WidgetPreferenceDefaults.CurrentSchemaVersion, result.Preferences.SchemaVersion);
         Assert.Equal(CompactAccountLayout.Vertical, result.Preferences.CompactAccountLayout);
         Assert.Equal(WidgetPreferenceDefaults.DefaultWidgetScalePercent, result.Preferences.WidgetScalePercent);
+        Assert.Equal(WidgetThemePreference.Light, result.Preferences.Theme);
     }
 
     [Fact]
@@ -196,6 +218,38 @@ public sealed class PreferenceStoreTests
         Assert.Equal(WidgetPreferenceDefaults.CurrentSchemaVersion, result.Preferences.SchemaVersion);
         Assert.Equal(CompactAccountLayout.Horizontal, result.Preferences.CompactAccountLayout);
         Assert.Equal(WidgetPreferenceDefaults.DefaultWidgetScalePercent, result.Preferences.WidgetScalePercent);
+        Assert.Equal(WidgetThemePreference.Light, result.Preferences.Theme);
+    }
+
+    [Fact]
+    public void Load_Schema4_MigratesToCurrentSchemaWithDefaultTheme()
+    {
+        using var directory = new TemporaryDirectory();
+        var filePath = Path.Combine(directory.Path, "settings.json");
+        WriteJson(filePath, """
+            {
+              "schemaVersion": 4,
+              "selectedView": "Compact",
+              "compactAccountLayout": "Horizontal",
+              "widgetScalePercent": 140,
+              "alwaysOnTop": true,
+              "refreshPeriodSeconds": 300,
+              "windowPlacement": {
+                "x": 0,
+                "y": 0,
+                "width": 360,
+                "height": 240
+              }
+            }
+            """);
+        var store = new PreferenceStore(new FixedPreferencePathProvider(filePath));
+
+        var result = store.Load();
+
+        Assert.True(result.Availability.IsAvailable);
+        Assert.False(result.UsedDefaults);
+        Assert.Equal(WidgetPreferenceDefaults.CurrentSchemaVersion, result.Preferences.SchemaVersion);
+        Assert.Equal(WidgetThemePreference.Light, result.Preferences.Theme);
     }
 
     [Fact]
@@ -308,6 +362,37 @@ public sealed class PreferenceStoreTests
         Assert.False(result.Availability.IsAvailable);
         Assert.True(result.UsedDefaults);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Summary.Contains("compactAccountLayout", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Load_RejectsMalformedThemeForSchema5()
+    {
+        using var directory = new TemporaryDirectory();
+        var filePath = Path.Combine(directory.Path, "settings.json");
+        WriteJson(filePath, """
+            {
+              "schemaVersion": 5,
+              "selectedView": "Compact",
+              "compactAccountLayout": "Horizontal",
+              "widgetScalePercent": 140,
+              "alwaysOnTop": true,
+              "refreshPeriodSeconds": 300,
+              "theme": "Solarized",
+              "windowPlacement": {
+                "x": 0,
+                "y": 0,
+                "width": 360,
+                "height": 240
+              }
+            }
+            """);
+        var store = new PreferenceStore(new FixedPreferencePathProvider(filePath));
+
+        var result = store.Load();
+
+        Assert.False(result.Availability.IsAvailable);
+        Assert.True(result.UsedDefaults);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Summary.Contains("theme", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -22,6 +22,7 @@ public sealed class WidgetPreferenceCoordinatorTests
         Assert.Equal(defaults.WidgetScalePercent, draft.WidgetScalePercent);
         Assert.Equal(defaults.AlwaysOnTop, draft.AlwaysOnTop);
         Assert.Equal(defaults.RefreshPeriodSeconds, draft.RefreshPeriodSeconds);
+        Assert.Equal(defaults.Theme, draft.Theme);
     }
 
     [Fact]
@@ -149,6 +150,7 @@ public sealed class WidgetPreferenceCoordinatorTests
             WidgetScalePercent = 151,
             AlwaysOnTop = false,
             RefreshPeriodSeconds = 1,
+            Theme = (WidgetThemePreference)999,
         });
 
         Assert.True(outcome.Succeeded);
@@ -158,6 +160,7 @@ public sealed class WidgetPreferenceCoordinatorTests
         Assert.Equal(WidgetPreferenceDefaults.MaximumWidgetScalePercent, appliedPreferences.WidgetScalePercent);
         Assert.False(appliedPreferences.AlwaysOnTop);
         Assert.Equal(WidgetPreferenceDefaults.MinimumRefreshPeriodSeconds, appliedPreferences.RefreshPeriodSeconds);
+        Assert.Equal(WidgetThemePreference.Light, appliedPreferences.Theme);
         Assert.Contains(outcome.Messages, message => message.Contains("normalized", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -234,6 +237,7 @@ public sealed class WidgetPreferenceCoordinatorTests
             WidgetScalePercent = 120,
             AlwaysOnTop = false,
             RefreshPeriodSeconds = 300,
+            Theme = WidgetThemePreference.Dark,
         });
 
         Assert.True(outcome.Succeeded);
@@ -242,6 +246,11 @@ public sealed class WidgetPreferenceCoordinatorTests
         Assert.Equal(CompactAccountLayout.Horizontal, appliedPreferences.CompactAccountLayout);
         Assert.Equal(120, appliedPreferences.WidgetScalePercent);
         Assert.False(appliedPreferences.AlwaysOnTop);
+        Assert.Equal(WidgetThemePreference.Dark, appliedPreferences.Theme);
+
+        var reloaded = store.Load();
+        Assert.True(reloaded.Availability.IsAvailable);
+        Assert.Equal(WidgetThemePreference.Dark, reloaded.Preferences.Theme);
     }
 
     [Fact]

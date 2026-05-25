@@ -22,6 +22,9 @@ internal sealed class WidgetPreferencesDocument
     [JsonPropertyName("refreshPeriodSeconds")]
     public int? RefreshPeriodSeconds { get; init; }
 
+    [JsonPropertyName("theme")]
+    public string? Theme { get; init; }
+
     [JsonPropertyName("windowPlacement")]
     public WindowPlacementPreferencesDocument? WindowPlacement { get; init; }
 
@@ -37,6 +40,7 @@ internal sealed class WidgetPreferencesDocument
             WidgetScalePercent = preferences.WidgetScalePercent,
             AlwaysOnTop = preferences.AlwaysOnTop,
             RefreshPeriodSeconds = preferences.RefreshPeriodSeconds,
+            Theme = preferences.Theme.ToString(),
             WindowPlacement = new WindowPlacementPreferencesDocument
             {
                 X = preferences.WindowPlacement.X,
@@ -109,10 +113,11 @@ internal static class WidgetPreferenceMigrator
 
         return document.SchemaVersion.Value switch
         {
-            1 => new WidgetPreferenceMigrationResult(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(MigrateSchema1ToSchema2(document))), null),
-            2 => new WidgetPreferenceMigrationResult(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(document)), null),
-            3 => new WidgetPreferenceMigrationResult(MigrateSchema3ToSchema4(document), null),
-            4 => new WidgetPreferenceMigrationResult(document, null),
+            1 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(MigrateSchema1ToSchema2(document)))), null),
+            2 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(document))), null),
+            3 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(document)), null),
+            4 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(document), null),
+            5 => new WidgetPreferenceMigrationResult(document, null),
             _ => new WidgetPreferenceMigrationResult(
                 null,
                 CreateDiagnostic(
@@ -131,6 +136,7 @@ internal static class WidgetPreferenceMigrator
             WidgetScalePercent = document.WidgetScalePercent,
             AlwaysOnTop = document.AlwaysOnTop,
             RefreshPeriodSeconds = document.RefreshPeriodSeconds,
+            Theme = document.Theme,
             WindowPlacement = document.WindowPlacement,
         };
     }
@@ -145,11 +151,27 @@ internal static class WidgetPreferenceMigrator
             WidgetScalePercent = WidgetPreferenceDefaults.DefaultWidgetScalePercent,
             AlwaysOnTop = document.AlwaysOnTop,
             RefreshPeriodSeconds = document.RefreshPeriodSeconds,
+            Theme = document.Theme,
             WindowPlacement = document.WindowPlacement,
         };
     }
 
     private static WidgetPreferencesDocument MigrateSchema3ToSchema4(WidgetPreferencesDocument document)
+    {
+        return new WidgetPreferencesDocument
+        {
+            SchemaVersion = 4,
+            SelectedView = document.SelectedView,
+            CompactAccountLayout = document.CompactAccountLayout,
+            WidgetScalePercent = document.WidgetScalePercent,
+            AlwaysOnTop = document.AlwaysOnTop,
+            RefreshPeriodSeconds = document.RefreshPeriodSeconds,
+            Theme = document.Theme,
+            WindowPlacement = document.WindowPlacement,
+        };
+    }
+
+    private static WidgetPreferencesDocument MigrateSchema4ToSchema5(WidgetPreferencesDocument document)
     {
         return new WidgetPreferencesDocument
         {
@@ -159,6 +181,9 @@ internal static class WidgetPreferenceMigrator
             WidgetScalePercent = document.WidgetScalePercent,
             AlwaysOnTop = document.AlwaysOnTop,
             RefreshPeriodSeconds = document.RefreshPeriodSeconds,
+            Theme = string.IsNullOrWhiteSpace(document.Theme)
+                ? WidgetPreferenceDefaults.DefaultTheme.ToString()
+                : document.Theme,
             WindowPlacement = document.WindowPlacement,
         };
     }
@@ -224,6 +249,11 @@ internal static class WidgetPreferenceValidator
             diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field refreshPeriodSeconds is missing."));
         }
 
+        if (string.IsNullOrWhiteSpace(document.Theme))
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field theme is missing."));
+        }
+
         if (document.WindowPlacement is null)
         {
             diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field windowPlacement is missing."));
@@ -244,6 +274,12 @@ internal static class WidgetPreferenceValidator
             || !Enum.IsDefined(compactAccountLayout))
         {
             diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.Malformed, $"Preference compactAccountLayout '{document.CompactAccountLayout}' is not supported."));
+        }
+
+        if (!Enum.TryParse<WidgetThemePreference>(document.Theme, ignoreCase: true, out var theme)
+            || !Enum.IsDefined(theme))
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.Malformed, $"Preference theme '{document.Theme}' is not supported."));
         }
 
         var normalizedRefreshPeriodSeconds = Math.Clamp(
@@ -281,6 +317,7 @@ internal static class WidgetPreferenceValidator
             WidgetScalePercent = normalizedWidgetScalePercent,
             AlwaysOnTop = document.AlwaysOnTop!.Value,
             RefreshPeriodSeconds = normalizedRefreshPeriodSeconds,
+            Theme = theme,
             WindowPlacement = new WindowPlacementPreferences
             {
                 X = placement.X!.Value,

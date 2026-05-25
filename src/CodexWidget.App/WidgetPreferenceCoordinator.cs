@@ -13,6 +13,8 @@ internal sealed record WidgetPreferenceDraft
     public bool AlwaysOnTop { get; init; } = WidgetPreferenceDefaults.DefaultAlwaysOnTop;
 
     public int RefreshPeriodSeconds { get; init; } = WidgetPreferenceDefaults.DefaultRefreshPeriodSeconds;
+
+    public WidgetThemePreference Theme { get; init; } = WidgetPreferenceDefaults.DefaultTheme;
 }
 
 internal sealed record WidgetPreferenceSaveOutcome
@@ -49,6 +51,7 @@ internal sealed class WidgetPreferenceCoordinator
             WidgetScalePercent = _currentPreferences.WidgetScalePercent,
             AlwaysOnTop = _currentPreferences.AlwaysOnTop,
             RefreshPeriodSeconds = _currentPreferences.RefreshPeriodSeconds,
+            Theme = _currentPreferences.Theme,
         };
     }
 
@@ -65,6 +68,7 @@ internal sealed class WidgetPreferenceCoordinator
                 draft.RefreshPeriodSeconds,
                 WidgetPreferenceDefaults.MinimumRefreshPeriodSeconds,
                 WidgetPreferenceDefaults.MaximumRefreshPeriodSeconds),
+            Theme = NormalizeTheme(draft.Theme),
         };
     }
 
@@ -156,6 +160,7 @@ internal sealed class WidgetPreferenceCoordinator
             WidgetScalePercent = draft.WidgetScalePercent,
             AlwaysOnTop = draft.AlwaysOnTop,
             RefreshPeriodSeconds = draft.RefreshPeriodSeconds,
+            Theme = draft.Theme,
         };
     }
 
@@ -210,6 +215,13 @@ internal sealed class WidgetPreferenceCoordinator
             : CompactAccountLayout.Horizontal;
     }
 
+    private static WidgetThemePreference NormalizeTheme(WidgetThemePreference theme)
+    {
+        return Enum.IsDefined(theme)
+            ? theme
+            : WidgetPreferenceDefaults.DefaultTheme;
+    }
+
     private static List<string> BuildNormalizationMessages(WidgetPreferenceDraft draft, WidgetPreferenceDraft normalized)
     {
         var messages = new List<string>();
@@ -234,6 +246,11 @@ internal sealed class WidgetPreferenceCoordinator
         {
             messages.Add(
                 $"Widget scale was normalized to {normalized.WidgetScalePercent}% ({WidgetPreferenceDefaults.MinimumWidgetScalePercent}-{WidgetPreferenceDefaults.MaximumWidgetScalePercent}).");
+        }
+
+        if (draft.Theme != normalized.Theme)
+        {
+            messages.Add($"Theme was normalized to {normalized.Theme}.");
         }
 
         return messages;
