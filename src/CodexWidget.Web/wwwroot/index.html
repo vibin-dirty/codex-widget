@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Codex Usage</title>
     <meta name="description" content="Compact Codex profile usage status.">
+    <script>
+        (() => {
+            "use strict";
+
+            const storageKey = "codexWidget.webTheme";
+            const lightTheme = "Light";
+            const darkTheme = "Dark";
+
+            try {
+                document.documentElement.dataset.theme = window.localStorage.getItem(storageKey) === darkTheme
+                    ? darkTheme
+                    : lightTheme;
+            } catch {
+                document.documentElement.dataset.theme = lightTheme;
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="/css/app.css">
     <script src="/js/app.js" defer></script>
 </head>
@@ -14,8 +31,16 @@
     <main id="main-content" class="widget-shell" aria-busy="true">
         <section class="usage-widget" aria-labelledby="usage-title">
             <header class="widget-header">
-                <h1 id="usage-title">Codex Usage</h1>
-                <p id="status-line" class="status-line" role="status" aria-live="polite">Loading usage...</p>
+                <div class="header-copy">
+                    <h1 id="usage-title">Codex Usage</h1>
+                    <p id="status-line" class="status-line" role="status" aria-live="polite">Loading usage...</p>
+                </div>
+                <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to dark theme">
+                    <span class="theme-toggle-track" aria-hidden="true">
+                        <span class="theme-toggle-thumb"></span>
+                    </span>
+                    <span id="theme-toggle-label" class="theme-toggle-label">Light</span>
+                </button>
             </header>
 
             <div id="status-board" class="status-board" aria-live="polite">

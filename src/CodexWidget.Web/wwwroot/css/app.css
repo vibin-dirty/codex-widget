@@ -1,12 +1,17 @@
-:root {
+:root,
+:root[data-theme="Light"] {
     color-scheme: light;
-    --page-bg: #eef6f6;
+    --page-bg: #f7f9fc;
     --widget-bg: #e9edf2;
-    --widget-border: #d7e0ea;
+    --widget-card-bg: rgba(255, 255, 255, 0.18);
+    --widget-border: #d9e1eb;
+    --header-bg: #e9edf2;
     --text: #101820;
     --muted: #4d5968;
+    --muted-strong: #5f6e80;
     --active: #087047;
     --active-dot: #17a35b;
+    --active-badge-bg: #f3fbf6;
     --badge-bg: #e8f7ef;
     --track: #6b7280;
     --fill-normal: #18a24a;
@@ -16,7 +21,42 @@
     --fill-red: #dc2626;
     --fill-unavailable: #8a94a3;
     --marker: #111111;
-    --shadow: 0 8px 24px rgba(16, 24, 32, 0.12);
+    --error: #b42318;
+    --focus: #0b5caa;
+    --switch-bg: #d8e0ea;
+    --switch-thumb: #ffffff;
+    --switch-border: #b7c2ce;
+    --shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+}
+
+:root[data-theme="Dark"] {
+    color-scheme: dark;
+    --page-bg: #11161d;
+    --widget-bg: #151a20;
+    --widget-card-bg: #1b222b;
+    --widget-border: #2c3947;
+    --header-bg: #151a20;
+    --text: #e8eef6;
+    --muted: #8793a3;
+    --muted-strong: #b5c0ce;
+    --active: #78e6a0;
+    --active-dot: #35d07f;
+    --active-badge-bg: #10271d;
+    --badge-bg: #143225;
+    --track: #344253;
+    --fill-normal: #35d07f;
+    --fill-blue: #60a5fa;
+    --fill-pink: #f472b6;
+    --fill-yellow: #facc15;
+    --fill-red: #ff6b6b;
+    --fill-unavailable: #536171;
+    --marker: #e8eef6;
+    --error: #ff9c8f;
+    --focus: #83d5ff;
+    --switch-bg: #202a35;
+    --switch-thumb: #e8eef6;
+    --switch-border: #455363;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -32,6 +72,10 @@ body {
     line-height: 1.25;
 }
 
+button {
+    font: inherit;
+}
+
 .skip-link {
     position: absolute;
     top: -4rem;
@@ -39,13 +83,20 @@ body {
     z-index: 10;
     padding: 0.55rem 0.75rem;
     border-radius: 6px;
-    color: #ffffff;
-    background: #12343b;
+    color: var(--page-bg);
+    background: var(--text);
     text-decoration: none;
 }
 
 .skip-link:focus {
     top: 1rem;
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .widget-shell {
@@ -73,6 +124,13 @@ body {
     min-height: 60px;
     padding: 10px 18px;
     border-bottom: 1px solid var(--widget-border);
+    background: var(--header-bg);
+}
+
+.header-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
 }
 
 h1 {
@@ -90,12 +148,62 @@ h1 {
     margin: 0;
     color: var(--muted);
     font-size: 12px;
-    text-align: right;
     white-space: nowrap;
 }
 
 .status-line[data-tone="error"] {
-    color: #8e281f;
+    color: var(--error);
+}
+
+.theme-toggle {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 7px;
+    min-height: 30px;
+    padding: 4px 7px;
+    border: 1px solid var(--switch-border);
+    border-radius: 999px;
+    color: var(--muted-strong);
+    background: var(--widget-card-bg);
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    color: var(--text);
+    border-color: var(--muted);
+}
+
+.theme-toggle-track {
+    position: relative;
+    width: 30px;
+    height: 16px;
+    border: 1px solid var(--switch-border);
+    border-radius: 999px;
+    background: var(--switch-bg);
+}
+
+.theme-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--switch-thumb);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+}
+
+.theme-toggle[aria-checked="true"] .theme-toggle-thumb {
+    transform: translateX(14px);
+}
+
+.theme-toggle-label {
+    min-width: 31px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: left;
 }
 
 .status-board {
@@ -109,6 +217,7 @@ h1 {
     gap: 6px;
     padding: 8px 0;
     border-bottom: 1px solid var(--widget-border);
+    background: var(--widget-card-bg);
 }
 
 .profile-card:last-child {
@@ -144,7 +253,7 @@ h1 {
     color: var(--active);
     font-size: 14px;
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--active-badge-bg);
     white-space: nowrap;
 }
 
@@ -171,7 +280,7 @@ h1 {
 
 .bucket-label {
     width: 20px;
-    color: var(--muted);
+    color: var(--muted-strong);
     font-size: 13px;
     font-weight: 600;
     line-height: 1;
@@ -205,6 +314,9 @@ h1 {
     position: relative;
     height: 14px;
     min-width: 84px;
+    overflow: hidden;
+    border: 1px solid var(--widget-border);
+    border-radius: 2px;
     background: var(--track);
 }
 
@@ -258,7 +370,7 @@ h1 {
 
 .reset-time {
     overflow: hidden;
-    color: var(--muted);
+    color: var(--muted-strong);
     font-size: 15px;
     text-overflow: ellipsis;
     white-space: nowrap;

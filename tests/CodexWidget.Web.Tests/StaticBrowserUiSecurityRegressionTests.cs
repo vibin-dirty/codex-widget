@@ -167,6 +167,58 @@ public sealed class StaticBrowserUiSecurityRegressionTests
         Assert.DoesNotContain("renderRefreshDetailsSection", scriptContent, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void StaticShell_ProvidesAccessibleThemeSwitchWithEarlyThemeBootstrap()
+    {
+        var indexPath = GetStaticAssetPath("index.html");
+        var indexContent = File.ReadAllText(indexPath);
+
+        Assert.Contains("id=\"theme-toggle\"", indexContent, StringComparison.Ordinal);
+        Assert.Contains("type=\"button\"", indexContent, StringComparison.Ordinal);
+        Assert.Contains("role=\"switch\"", indexContent, StringComparison.Ordinal);
+        Assert.Contains("aria-checked=\"false\"", indexContent, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Switch to dark theme\"", indexContent, StringComparison.Ordinal);
+        Assert.Contains("id=\"theme-toggle-label\"", indexContent, StringComparison.Ordinal);
+
+        var bootstrapIndex = indexContent.IndexOf("codexWidget.webTheme", StringComparison.Ordinal);
+        var stylesheetIndex = indexContent.IndexOf("<link rel=\"stylesheet\" href=\"/css/app.css\">", StringComparison.Ordinal);
+        Assert.True(
+            bootstrapIndex >= 0 && bootstrapIndex < stylesheetIndex,
+            "The saved theme bootstrap must run before the stylesheet to reduce initial theme flash.");
+    }
+
+    [Fact]
+    public void StaticAssets_PersistWebThemeWithLightDefaultAndDarkPaletteTokens()
+    {
+        var scriptPath = GetStaticAssetPath(Path.Combine("js", "app.js"));
+        var scriptContent = File.ReadAllText(scriptPath);
+        var stylePath = GetStaticAssetPath(Path.Combine("css", "app.css"));
+        var styleContent = File.ReadAllText(stylePath);
+
+        Assert.Contains("const themeStorageKey = \"codexWidget.webTheme\";", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("const lightTheme = \"Light\";", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("const darkTheme = \"Dark\";", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("window.localStorage.getItem(themeStorageKey) === darkTheme ? darkTheme : lightTheme", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("window.localStorage.setItem(themeStorageKey", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("elements.themeToggle.addEventListener(\"click\", toggleTheme)", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("elements.themeToggle.setAttribute(\"aria-checked\", isDark ? \"true\" : \"false\")", scriptContent, StringComparison.Ordinal);
+        Assert.Contains("document.documentElement.dataset.theme", scriptContent, StringComparison.Ordinal);
+
+        Assert.Contains(":root[data-theme=\"Dark\"]", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--widget-bg: #151a20;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--widget-card-bg: #1b222b;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--text: #e8eef6;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--active: #78e6a0;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--track: #344253;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--fill-normal: #35d07f;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--fill-blue: #60a5fa;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--fill-pink: #f472b6;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--fill-yellow: #facc15;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--fill-red: #ff6b6b;", styleContent, StringComparison.Ordinal);
+        Assert.Contains("--marker: #e8eef6;", styleContent, StringComparison.Ordinal);
+        Assert.Contains(".theme-toggle:focus-visible", styleContent, StringComparison.Ordinal);
+    }
+
     private static IReadOnlyList<string> EnumerateStaticAssetFiles()
     {
         var root = GetWwwRootDirectory();

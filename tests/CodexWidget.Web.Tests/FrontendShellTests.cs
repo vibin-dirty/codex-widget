@@ -58,6 +58,8 @@ public sealed class FrontendShellTests
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         Assert.Contains("<main id=\"main-content\"", payload, StringComparison.Ordinal);
         Assert.Contains("id=\"status-board\"", payload, StringComparison.Ordinal);
+        Assert.Contains("id=\"theme-toggle\"", payload, StringComparison.Ordinal);
+        Assert.Contains("role=\"switch\"", payload, StringComparison.Ordinal);
         Assert.Contains("Codex Usage", payload, StringComparison.Ordinal);
         Assert.Contains("id=\"live-announcements\"", payload, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"compact-overview\"", payload, StringComparison.Ordinal);

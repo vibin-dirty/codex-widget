@@ -2,6 +2,9 @@
     "use strict";
 
     const presentationEndpoint = "/api/status/presentation";
+    const themeStorageKey = "codexWidget.webTheme";
+    const lightTheme = "Light";
+    const darkTheme = "Dark";
     const pollingIntervalMilliseconds = 15000;
     const unavailablePercentText = "--";
     const unavailableResetText = "-- --:--";
@@ -17,17 +20,72 @@
         pollingTimerId: null,
         teardownRequested: false,
         teardownController: new AbortController(),
+        theme: lightTheme,
     };
 
     const elements = {
         mainContent: document.getElementById("main-content"),
         statusBoard: document.getElementById("status-board"),
         statusLine: document.getElementById("status-line"),
+        themeToggle: document.getElementById("theme-toggle"),
+        themeToggleLabel: document.getElementById("theme-toggle-label"),
         liveAnnouncements: document.getElementById("live-announcements"),
     };
 
+    initializeTheme();
     wireLifecycleHandlers();
     void boot();
+
+    function initializeTheme() {
+        state.theme = readStoredTheme();
+        applyTheme(state.theme);
+        persistTheme(state.theme);
+        syncThemeToggle();
+
+        if (elements.themeToggle) {
+            elements.themeToggle.addEventListener("click", toggleTheme);
+        }
+    }
+
+    function toggleTheme() {
+        state.theme = state.theme === darkTheme ? lightTheme : darkTheme;
+        applyTheme(state.theme);
+        persistTheme(state.theme);
+        syncThemeToggle();
+    }
+
+    function readStoredTheme() {
+        try {
+            return window.localStorage.getItem(themeStorageKey) === darkTheme ? darkTheme : lightTheme;
+        } catch {
+            return lightTheme;
+        }
+    }
+
+    function persistTheme(theme) {
+        try {
+            window.localStorage.setItem(themeStorageKey, theme === darkTheme ? darkTheme : lightTheme);
+        } catch {
+            // Theme changes should still work for this page view when storage is blocked.
+        }
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme === darkTheme ? darkTheme : lightTheme;
+    }
+
+    function syncThemeToggle() {
+        const isDark = state.theme === darkTheme;
+
+        if (elements.themeToggle) {
+            elements.themeToggle.setAttribute("aria-checked", isDark ? "true" : "false");
+            elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
+        }
+
+        if (elements.themeToggleLabel) {
+            elements.themeToggleLabel.textContent = isDark ? darkTheme : lightTheme;
+        }
+    }
 
     async function boot() {
         renderLoading();
