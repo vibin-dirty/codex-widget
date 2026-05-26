@@ -12,12 +12,18 @@ public sealed class StatusProjectionService
 
     public StatusAllProfileProjection ProjectStatusAll(ProfileStatus profileStatus)
     {
+        return ProjectStatusAll(profileStatus, WidgetPreferenceDefaults.Create());
+    }
+
+    public StatusAllProfileProjection ProjectStatusAll(ProfileStatus profileStatus, WidgetPreferences preferences)
+    {
         ArgumentNullException.ThrowIfNull(profileStatus);
+        ArgumentNullException.ThrowIfNull(preferences);
 
         var nowUtc = clock.UtcNow;
         var classified = ClassifyBuckets(profileStatus);
-        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc);
-        var sparkBucket = ProjectBucket(classified.SparkBucket, nowUtc);
+        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc, preferences.WorkSchedule);
+        var sparkBucket = ProjectBucket(classified.SparkBucket, nowUtc, preferences.WorkSchedule);
 
         return new StatusAllProfileProjection
         {
@@ -43,7 +49,13 @@ public sealed class StatusProjectionService
 
     public MinimalStatusViewProjection ProjectMinimal(StatusSnapshot snapshot)
     {
+        return ProjectMinimal(snapshot, WidgetPreferenceDefaults.Create());
+    }
+
+    public MinimalStatusViewProjection ProjectMinimal(StatusSnapshot snapshot, WidgetPreferences preferences)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(preferences);
 
         var currentProfile = SelectCurrentProfile(snapshot);
         if (currentProfile is null)
@@ -56,7 +68,7 @@ public sealed class StatusProjectionService
 
         var nowUtc = clock.UtcNow;
         var classified = ClassifyBuckets(currentProfile);
-        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc);
+        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc, preferences.WorkSchedule);
 
         return new MinimalStatusViewProjection
         {
@@ -71,11 +83,17 @@ public sealed class StatusProjectionService
 
     public CompactStatusViewProjection ProjectCompact(StatusSnapshot snapshot)
     {
+        return ProjectCompact(snapshot, WidgetPreferenceDefaults.Create());
+    }
+
+    public CompactStatusViewProjection ProjectCompact(StatusSnapshot snapshot, WidgetPreferences preferences)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(preferences);
 
         var nowUtc = clock.UtcNow;
         var profiles = snapshot.Profiles
-            .Select(profile => BuildCompactProfile(profile, nowUtc))
+            .Select(profile => BuildCompactProfile(profile, nowUtc, preferences.WorkSchedule))
             .ToArray();
 
         return new CompactStatusViewProjection
@@ -87,11 +105,17 @@ public sealed class StatusProjectionService
 
     public FullStatusViewProjection ProjectFull(StatusSnapshot snapshot)
     {
+        return ProjectFull(snapshot, WidgetPreferenceDefaults.Create());
+    }
+
+    public FullStatusViewProjection ProjectFull(StatusSnapshot snapshot, WidgetPreferences preferences)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(preferences);
 
         var nowUtc = clock.UtcNow;
         var profiles = snapshot.Profiles
-            .Select(profile => BuildFullProfile(profile, nowUtc))
+            .Select(profile => BuildFullProfile(profile, nowUtc, preferences.WorkSchedule))
             .ToArray();
 
         return new FullStatusViewProjection
@@ -125,11 +149,14 @@ public sealed class StatusProjectionService
         };
     }
 
-    private CompactProfileProjection BuildCompactProfile(ProfileStatus profileStatus, DateTimeOffset nowUtc)
+    private CompactProfileProjection BuildCompactProfile(
+        ProfileStatus profileStatus,
+        DateTimeOffset nowUtc,
+        WeeklyWorkSchedule workSchedule)
     {
         var classified = ClassifyBuckets(profileStatus);
-        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc);
-        var sparkBucket = ProjectBucket(classified.SparkBucket, nowUtc);
+        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc, workSchedule);
+        var sparkBucket = ProjectBucket(classified.SparkBucket, nowUtc, workSchedule);
 
         return new CompactProfileProjection
         {
@@ -139,13 +166,16 @@ public sealed class StatusProjectionService
         };
     }
 
-    private FullProfileProjection BuildFullProfile(ProfileStatus profileStatus, DateTimeOffset nowUtc)
+    private FullProfileProjection BuildFullProfile(
+        ProfileStatus profileStatus,
+        DateTimeOffset nowUtc,
+        WeeklyWorkSchedule workSchedule)
     {
         var classified = ClassifyBuckets(profileStatus);
-        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc);
-        var sparkBucket = ProjectBucket(classified.SparkBucket, nowUtc);
+        var mainBucket = ProjectBucket(classified.MainBucket, nowUtc, workSchedule);
+        var sparkBucket = ProjectBucket(classified.SparkBucket, nowUtc, workSchedule);
         var additionalBuckets = classified.AdditionalBuckets
-            .Select(bucket => ProjectBucket(bucket, nowUtc))
+            .Select(bucket => ProjectBucket(bucket, nowUtc, workSchedule))
             .Where(bucket => bucket is not null)
             .Cast<ProjectedUsageBucket>()
             .ToArray();
@@ -176,14 +206,17 @@ public sealed class StatusProjectionService
         return snapshot.Profiles.FirstOrDefault(profile => IdentifierComparer.Equals(profile.Profile.ProfileId, snapshot.CurrentProfileId));
     }
 
-    private static ProjectedUsageBucket? ProjectBucket(UsageBucketSnapshot? bucket, DateTimeOffset nowUtc)
+    private static ProjectedUsageBucket? ProjectBucket(
+        UsageBucketSnapshot? bucket,
+        DateTimeOffset nowUtc,
+        WeeklyWorkSchedule workSchedule)
     {
         if (bucket is null)
         {
             return null;
         }
 
-        var windows = ProjectWindows(bucket.Windows, nowUtc);
+        var windows = ProjectWindows(bucket.Windows, nowUtc, workSchedule);
         var fiveHour = windows.FirstOrDefault(window => window.WindowKind == UsageWindowKind.FiveHour);
         var weekly = windows.FirstOrDefault(window => window.WindowKind == UsageWindowKind.Weekly);
 
@@ -200,7 +233,10 @@ public sealed class StatusProjectionService
         };
     }
 
-    private static IReadOnlyList<ProjectedUsageWindow> ProjectWindows(IReadOnlyList<UsageWindowSnapshot> windows, DateTimeOffset nowUtc)
+    private static IReadOnlyList<ProjectedUsageWindow> ProjectWindows(
+        IReadOnlyList<UsageWindowSnapshot> windows,
+        DateTimeOffset nowUtc,
+        WeeklyWorkSchedule workSchedule)
     {
         if (windows.Count == 0)
         {
@@ -239,7 +275,12 @@ public sealed class StatusProjectionService
                 EndsAtUnixSeconds = source.ResetAtUnixSeconds,
                 UsedPercent = source.UsedPercent,
                 QuotaLeftPercent = UsageCalculations.CalculateQuotaLeftPercent(source.UsedPercent),
-                TimeLeftPercent = UsageCalculations.CalculateWindowTimeLeftPercent(mappedKind, source.ResetAtUnixSeconds, source.DurationSeconds, nowUtc),
+                TimeLeftPercent = UsageCalculations.CalculateWindowTimeLeftPercent(
+                    mappedKind,
+                    source.ResetAtUnixSeconds,
+                    source.DurationSeconds,
+                    nowUtc,
+                    workSchedule),
                 Availability = ResolveWindowAvailability(source),
             });
         }

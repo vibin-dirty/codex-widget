@@ -18,9 +18,9 @@ public sealed class WidgetPresentationService
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(preferences);
 
-        var minimalProjection = projectionService.ProjectMinimal(snapshot);
-        var compactProjection = projectionService.ProjectCompact(snapshot);
-        var fullProjection = projectionService.ProjectFull(snapshot);
+        var minimalProjection = projectionService.ProjectMinimal(snapshot, preferences);
+        var compactProjection = projectionService.ProjectCompact(snapshot, preferences);
+        var fullProjection = projectionService.ProjectFull(snapshot, preferences);
 
         var minimal = BuildMinimal(minimalProjection);
         var compact = BuildCompact(compactProjection);

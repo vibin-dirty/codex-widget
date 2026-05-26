@@ -81,6 +81,47 @@ public sealed class StatusProjectionServiceTests
     }
 
     [Fact]
+    public void CalculateWindowTimeLeftPercent_WeeklyUsesConfiguredSchedule()
+    {
+        var now = new DateTimeOffset(2026, 1, 5, 8, 0, 0, TimeSpan.FromHours(1));
+        var resetAt = new DateTimeOffset(2026, 1, 5, 9, 0, 0, TimeSpan.FromHours(1));
+        var schedule = new WeeklyWorkSchedule
+        {
+            Monday = new DayWorkSchedule
+            {
+                Windows =
+                [
+                    new WorkWindow { Start = new TimeOnly(7, 0), End = new TimeOnly(9, 0) },
+                ],
+            },
+        };
+
+        Assert.Equal(
+            50,
+            UsageCalculations.CalculateWindowTimeLeftPercent(
+                UsageWindowKind.Weekly,
+                resetAt.ToUnixTimeSeconds(),
+                604_800,
+                now,
+                schedule));
+    }
+
+    [Fact]
+    public void CalculateWindowTimeLeftPercent_WeeklyReturnsNullForZeroTotalConfiguredWeek()
+    {
+        var now = new DateTimeOffset(2026, 1, 5, 8, 0, 0, TimeSpan.FromHours(1));
+        var resetAt = new DateTimeOffset(2026, 1, 5, 9, 0, 0, TimeSpan.FromHours(1));
+
+        Assert.Null(
+            UsageCalculations.CalculateWindowTimeLeftPercent(
+                UsageWindowKind.Weekly,
+                resetAt.ToUnixTimeSeconds(),
+                604_800,
+                now,
+                new WeeklyWorkSchedule()));
+    }
+
+    [Fact]
     public void ProjectStatusAll_MapsSingleWindowToFiveHourAndLeavesWeeklyUnavailable()
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(10_000);
@@ -147,6 +188,53 @@ public sealed class StatusProjectionServiceTests
         Assert.Equal(80, projection.MainWeeklyLeftPercent);
         Assert.Equal(50, projection.Main5HourTimeLeftPercent);
         Assert.Equal(100, projection.MainWeeklyTimeLeftPercent);
+    }
+
+    [Fact]
+    public void ProjectStatusAll_UsesConfiguredWeeklyScheduleForTimeLeftProjection()
+    {
+        var now = new DateTimeOffset(2026, 1, 5, 8, 0, 0, TimeSpan.FromHours(1));
+        var service = new StatusProjectionService(new FixedClock(now));
+        var profileStatus = CreateProfileStatus(
+            isCurrent: true,
+            mainBucket: CreateBucket(
+                id: "codex",
+                label: "codex",
+                kind: UsageBucketKind.MainCodex,
+                windows:
+                [
+                    new UsageWindowSnapshot
+                    {
+                        DurationSeconds = 18_000,
+                        ResetAtUnixSeconds = now.AddHours(1).ToUnixTimeSeconds(),
+                        UsedPercent = 40.0,
+                        Availability = StatusAvailability.Available(),
+                    },
+                    new UsageWindowSnapshot
+                    {
+                        DurationSeconds = 604_800,
+                        ResetAtUnixSeconds = new DateTimeOffset(2026, 1, 5, 9, 0, 0, TimeSpan.FromHours(1)).ToUnixTimeSeconds(),
+                        UsedPercent = 20.0,
+                        Availability = StatusAvailability.Available(),
+                    },
+                ]));
+        var preferences = WidgetPreferenceDefaults.Create() with
+        {
+            WorkSchedule = new WeeklyWorkSchedule
+            {
+                Monday = new DayWorkSchedule
+                {
+                    Windows =
+                    [
+                        new WorkWindow { Start = new TimeOnly(7, 0), End = new TimeOnly(9, 0) },
+                    ],
+                },
+            },
+        };
+
+        var projection = service.ProjectStatusAll(profileStatus, preferences);
+
+        Assert.Equal(50, projection.MainWeeklyTimeLeftPercent);
     }
 
     [Fact]

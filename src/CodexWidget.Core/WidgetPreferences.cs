@@ -48,12 +48,16 @@ public sealed record WidgetPreferences
 
     public WidgetThemePreference Theme { get; init; } = WidgetPreferenceDefaults.DefaultTheme;
 
+    public WeeklyWorkSchedule WorkSchedule { get; init; } = UsageConfigurationDefaults.CreateDefaultWeeklyWorkSchedule();
+
+    public QuotaThresholds QuotaThresholds { get; init; } = UsageConfigurationDefaults.CreateDefaultQuotaThresholds();
+
     public WindowPlacementPreferences WindowPlacement { get; init; } = new();
 }
 
 public static class WidgetPreferenceDefaults
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public const WidgetViewKind DefaultSelectedView = WidgetViewKind.Compact;
 

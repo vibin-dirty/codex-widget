@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace CodexWidget.Core;
@@ -25,6 +26,12 @@ internal sealed class WidgetPreferencesDocument
     [JsonPropertyName("theme")]
     public string? Theme { get; init; }
 
+    [JsonPropertyName("workSchedule")]
+    public WeeklyWorkScheduleDocument? WorkSchedule { get; init; }
+
+    [JsonPropertyName("quotaThresholds")]
+    public QuotaThresholdsDocument? QuotaThresholds { get; init; }
+
     [JsonPropertyName("windowPlacement")]
     public WindowPlacementPreferencesDocument? WindowPlacement { get; init; }
 
@@ -41,6 +48,8 @@ internal sealed class WidgetPreferencesDocument
             AlwaysOnTop = preferences.AlwaysOnTop,
             RefreshPeriodSeconds = preferences.RefreshPeriodSeconds,
             Theme = preferences.Theme.ToString(),
+            WorkSchedule = WeeklyWorkScheduleDocument.FromPreferences(preferences.WorkSchedule),
+            QuotaThresholds = QuotaThresholdsDocument.FromPreferences(preferences.QuotaThresholds),
             WindowPlacement = new WindowPlacementPreferencesDocument
             {
                 X = preferences.WindowPlacement.X,
@@ -69,6 +78,96 @@ internal sealed class WindowPlacementPreferencesDocument
 
     [JsonPropertyName("screenKey")]
     public string? ScreenKey { get; init; }
+}
+
+internal sealed class WeeklyWorkScheduleDocument
+{
+    [JsonPropertyName("monday")]
+    public WorkWindowDocument[]? Monday { get; init; }
+
+    [JsonPropertyName("tuesday")]
+    public WorkWindowDocument[]? Tuesday { get; init; }
+
+    [JsonPropertyName("wednesday")]
+    public WorkWindowDocument[]? Wednesday { get; init; }
+
+    [JsonPropertyName("thursday")]
+    public WorkWindowDocument[]? Thursday { get; init; }
+
+    [JsonPropertyName("friday")]
+    public WorkWindowDocument[]? Friday { get; init; }
+
+    [JsonPropertyName("saturday")]
+    public WorkWindowDocument[]? Saturday { get; init; }
+
+    [JsonPropertyName("sunday")]
+    public WorkWindowDocument[]? Sunday { get; init; }
+
+    public static WeeklyWorkScheduleDocument FromPreferences(WeeklyWorkSchedule schedule)
+    {
+        ArgumentNullException.ThrowIfNull(schedule);
+
+        return new WeeklyWorkScheduleDocument
+        {
+            Monday = WorkWindowDocument.FromPreferences(schedule.Monday),
+            Tuesday = WorkWindowDocument.FromPreferences(schedule.Tuesday),
+            Wednesday = WorkWindowDocument.FromPreferences(schedule.Wednesday),
+            Thursday = WorkWindowDocument.FromPreferences(schedule.Thursday),
+            Friday = WorkWindowDocument.FromPreferences(schedule.Friday),
+            Saturday = WorkWindowDocument.FromPreferences(schedule.Saturday),
+            Sunday = WorkWindowDocument.FromPreferences(schedule.Sunday),
+        };
+    }
+}
+
+internal sealed class WorkWindowDocument
+{
+    [JsonPropertyName("start")]
+    public string? Start { get; init; }
+
+    [JsonPropertyName("end")]
+    public string? End { get; init; }
+
+    public static WorkWindowDocument[] FromPreferences(DayWorkSchedule schedule)
+    {
+        ArgumentNullException.ThrowIfNull(schedule);
+
+        return schedule.Windows
+            .Select(window => new WorkWindowDocument
+            {
+                Start = window.Start.ToString("HH:mm", CultureInfo.InvariantCulture),
+                End = window.End.ToString("HH:mm", CultureInfo.InvariantCulture),
+            })
+            .ToArray();
+    }
+}
+
+internal sealed class QuotaThresholdsDocument
+{
+    [JsonPropertyName("redBelowPercent")]
+    public int? RedBelowPercent { get; init; }
+
+    [JsonPropertyName("yellowBelowPercent")]
+    public int? YellowBelowPercent { get; init; }
+
+    [JsonPropertyName("blueAbovePercent")]
+    public int? BlueAbovePercent { get; init; }
+
+    [JsonPropertyName("pinkAbovePercent")]
+    public int? PinkAbovePercent { get; init; }
+
+    public static QuotaThresholdsDocument FromPreferences(QuotaThresholds thresholds)
+    {
+        ArgumentNullException.ThrowIfNull(thresholds);
+
+        return new QuotaThresholdsDocument
+        {
+            RedBelowPercent = thresholds.RedBelowPercent,
+            YellowBelowPercent = thresholds.YellowBelowPercent,
+            BlueAbovePercent = thresholds.BlueAbovePercent,
+            PinkAbovePercent = thresholds.PinkAbovePercent,
+        };
+    }
 }
 
 internal sealed record WidgetPreferenceMigrationResult(
@@ -113,11 +212,12 @@ internal static class WidgetPreferenceMigrator
 
         return document.SchemaVersion.Value switch
         {
-            1 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(MigrateSchema1ToSchema2(document)))), null),
-            2 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(document))), null),
-            3 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(document)), null),
-            4 => new WidgetPreferenceMigrationResult(MigrateSchema4ToSchema5(document), null),
-            5 => new WidgetPreferenceMigrationResult(document, null),
+            1 => new WidgetPreferenceMigrationResult(MigrateSchema5ToSchema6(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(MigrateSchema1ToSchema2(document))))), null),
+            2 => new WidgetPreferenceMigrationResult(MigrateSchema5ToSchema6(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(MigrateSchema2ToSchema3(document)))), null),
+            3 => new WidgetPreferenceMigrationResult(MigrateSchema5ToSchema6(MigrateSchema4ToSchema5(MigrateSchema3ToSchema4(document))), null),
+            4 => new WidgetPreferenceMigrationResult(MigrateSchema5ToSchema6(MigrateSchema4ToSchema5(document)), null),
+            5 => new WidgetPreferenceMigrationResult(MigrateSchema5ToSchema6(document), null),
+            6 => new WidgetPreferenceMigrationResult(document, null),
             _ => new WidgetPreferenceMigrationResult(
                 null,
                 CreateDiagnostic(
@@ -175,7 +275,7 @@ internal static class WidgetPreferenceMigrator
     {
         return new WidgetPreferencesDocument
         {
-            SchemaVersion = WidgetPreferenceDefaults.CurrentSchemaVersion,
+            SchemaVersion = 5,
             SelectedView = document.SelectedView,
             CompactAccountLayout = document.CompactAccountLayout,
             WidgetScalePercent = document.WidgetScalePercent,
@@ -184,6 +284,23 @@ internal static class WidgetPreferenceMigrator
             Theme = string.IsNullOrWhiteSpace(document.Theme)
                 ? WidgetPreferenceDefaults.DefaultTheme.ToString()
                 : document.Theme,
+            WindowPlacement = document.WindowPlacement,
+        };
+    }
+
+    private static WidgetPreferencesDocument MigrateSchema5ToSchema6(WidgetPreferencesDocument document)
+    {
+        return new WidgetPreferencesDocument
+        {
+            SchemaVersion = WidgetPreferenceDefaults.CurrentSchemaVersion,
+            SelectedView = document.SelectedView,
+            CompactAccountLayout = document.CompactAccountLayout,
+            WidgetScalePercent = document.WidgetScalePercent,
+            AlwaysOnTop = document.AlwaysOnTop,
+            RefreshPeriodSeconds = document.RefreshPeriodSeconds,
+            Theme = document.Theme,
+            WorkSchedule = document.WorkSchedule ?? WeeklyWorkScheduleDocument.FromPreferences(UsageConfigurationDefaults.CreateDefaultWeeklyWorkSchedule()),
+            QuotaThresholds = document.QuotaThresholds ?? QuotaThresholdsDocument.FromPreferences(UsageConfigurationDefaults.CreateDefaultQuotaThresholds()),
             WindowPlacement = document.WindowPlacement,
         };
     }
@@ -254,6 +371,16 @@ internal static class WidgetPreferenceValidator
             diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field theme is missing."));
         }
 
+        if (document.WorkSchedule is null)
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field workSchedule is missing."));
+        }
+
+        if (document.QuotaThresholds is null)
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field quotaThresholds is missing."));
+        }
+
         if (document.WindowPlacement is null)
         {
             diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field windowPlacement is missing."));
@@ -287,6 +414,8 @@ internal static class WidgetPreferenceValidator
             WidgetPreferenceDefaults.MinimumRefreshPeriodSeconds,
             WidgetPreferenceDefaults.MaximumRefreshPeriodSeconds);
         var normalizedWidgetScalePercent = NormalizeWidgetScalePercent(document.WidgetScalePercent!.Value);
+        var workSchedule = BuildWorkSchedule(document.WorkSchedule!, diagnostics);
+        var quotaThresholds = BuildQuotaThresholds(document.QuotaThresholds!, diagnostics);
 
         var placement = document.WindowPlacement!;
         if (!placement.X.HasValue || !placement.Y.HasValue || !placement.Width.HasValue || !placement.Height.HasValue)
@@ -318,6 +447,8 @@ internal static class WidgetPreferenceValidator
             AlwaysOnTop = document.AlwaysOnTop!.Value,
             RefreshPeriodSeconds = normalizedRefreshPeriodSeconds,
             Theme = theme,
+            WorkSchedule = workSchedule!,
+            QuotaThresholds = quotaThresholds!,
             WindowPlacement = new WindowPlacementPreferences
             {
                 X = placement.X!.Value,
@@ -355,5 +486,182 @@ internal static class WidgetPreferenceValidator
             Summary = summary,
             ObservedAtUtc = DateTimeOffset.UtcNow,
         };
+    }
+
+    private static WeeklyWorkSchedule? BuildWorkSchedule(
+        WeeklyWorkScheduleDocument document,
+        List<SourceDiagnostic> diagnostics)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(diagnostics);
+
+        var monday = BuildDaySchedule("monday", document.Monday, diagnostics);
+        var tuesday = BuildDaySchedule("tuesday", document.Tuesday, diagnostics);
+        var wednesday = BuildDaySchedule("wednesday", document.Wednesday, diagnostics);
+        var thursday = BuildDaySchedule("thursday", document.Thursday, diagnostics);
+        var friday = BuildDaySchedule("friday", document.Friday, diagnostics);
+        var saturday = BuildDaySchedule("saturday", document.Saturday, diagnostics);
+        var sunday = BuildDaySchedule("sunday", document.Sunday, diagnostics);
+
+        if (diagnostics.Count > 0)
+        {
+            return null;
+        }
+
+        var schedule = new WeeklyWorkSchedule
+        {
+            Monday = monday!,
+            Tuesday = tuesday!,
+            Wednesday = wednesday!,
+            Thursday = thursday!,
+            Friday = friday!,
+            Saturday = saturday!,
+            Sunday = sunday!,
+        };
+
+        foreach (var issue in UsageConfigurationRules.ValidateWeeklyWorkSchedule(schedule))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                SourceDiagnosticCode.Malformed,
+                $"Preference workSchedule {issue.Path} is invalid: {issue.Message}"));
+        }
+
+        return diagnostics.Count > 0 ? null : schedule;
+    }
+
+    private static DayWorkSchedule? BuildDaySchedule(
+        string dayName,
+        WorkWindowDocument[]? documents,
+        List<SourceDiagnostic> diagnostics)
+    {
+        if (documents is null)
+        {
+            diagnostics.Add(CreateDiagnostic(
+                SourceDiagnosticCode.MissingRequiredField,
+                $"Preference field workSchedule.{dayName} is missing."));
+            return null;
+        }
+
+        var windows = new List<WorkWindow>(documents.Length);
+        for (var index = 0; index < documents.Length; index++)
+        {
+            var document = documents[index];
+            if (document is null)
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    SourceDiagnosticCode.Malformed,
+                    $"Preference workSchedule.{dayName}[{index}] is missing."));
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(document.Start))
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    SourceDiagnosticCode.MissingRequiredField,
+                    $"Preference field workSchedule.{dayName}[{index}].start is missing."));
+            }
+
+            if (string.IsNullOrWhiteSpace(document.End))
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    SourceDiagnosticCode.MissingRequiredField,
+                    $"Preference field workSchedule.{dayName}[{index}].end is missing."));
+            }
+
+            if (string.IsNullOrWhiteSpace(document.Start) || string.IsNullOrWhiteSpace(document.End))
+            {
+                continue;
+            }
+
+            if (!TryParseTime(document.Start!, out var start))
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    SourceDiagnosticCode.Malformed,
+                    $"Preference workSchedule.{dayName}[{index}].start '{document.Start}' is not a valid HH:mm time."));
+            }
+
+            if (!TryParseTime(document.End!, out var end))
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    SourceDiagnosticCode.Malformed,
+                    $"Preference workSchedule.{dayName}[{index}].end '{document.End}' is not a valid HH:mm time."));
+            }
+
+            if (!TryParseTime(document.Start!, out start) || !TryParseTime(document.End!, out end))
+            {
+                continue;
+            }
+
+            windows.Add(new WorkWindow
+            {
+                Start = start,
+                End = end,
+            });
+        }
+
+        return new DayWorkSchedule
+        {
+            Windows = windows.ToArray(),
+        };
+    }
+
+    private static QuotaThresholds? BuildQuotaThresholds(
+        QuotaThresholdsDocument document,
+        List<SourceDiagnostic> diagnostics)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(diagnostics);
+
+        if (!document.RedBelowPercent.HasValue)
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field quotaThresholds.redBelowPercent is missing."));
+        }
+
+        if (!document.YellowBelowPercent.HasValue)
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field quotaThresholds.yellowBelowPercent is missing."));
+        }
+
+        if (!document.BlueAbovePercent.HasValue)
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field quotaThresholds.blueAbovePercent is missing."));
+        }
+
+        if (!document.PinkAbovePercent.HasValue)
+        {
+            diagnostics.Add(CreateDiagnostic(SourceDiagnosticCode.MissingRequiredField, "Preference field quotaThresholds.pinkAbovePercent is missing."));
+        }
+
+        if (diagnostics.Count > 0)
+        {
+            return null;
+        }
+
+        var thresholds = new QuotaThresholds
+        {
+            RedBelowPercent = document.RedBelowPercent!.Value,
+            YellowBelowPercent = document.YellowBelowPercent!.Value,
+            BlueAbovePercent = document.BlueAbovePercent!.Value,
+            PinkAbovePercent = document.PinkAbovePercent!.Value,
+        };
+
+        foreach (var issue in UsageConfigurationRules.ValidateQuotaThresholds(thresholds))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                SourceDiagnosticCode.Malformed,
+                $"Preference quotaThresholds.{issue.Path} is invalid: {issue.Message}"));
+        }
+
+        return diagnostics.Count > 0 ? null : thresholds;
+    }
+
+    private static bool TryParseTime(string text, out TimeOnly time)
+    {
+        return TimeOnly.TryParseExact(
+            text,
+            ["H:mm", "HH:mm"],
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out time);
     }
 }

@@ -19,6 +19,11 @@ public sealed class PreferenceStoreTests
         Assert.Equal(60, WidgetPreferenceDefaults.MinimumRefreshPeriodSeconds);
         Assert.Equal(24 * 60 * 60, WidgetPreferenceDefaults.MaximumRefreshPeriodSeconds);
         Assert.Equal(WidgetThemePreference.Light, defaults.Theme);
+        Assert.Equal(56, UsageConfigurationRules.GetTotalWeeklyHours(defaults.WorkSchedule));
+        Assert.Equal(70, defaults.QuotaThresholds.RedBelowPercent);
+        Assert.Equal(90, defaults.QuotaThresholds.YellowBelowPercent);
+        Assert.Equal(110, defaults.QuotaThresholds.BlueAbovePercent);
+        Assert.Equal(130, defaults.QuotaThresholds.PinkAbovePercent);
     }
 
     [Fact]
@@ -77,6 +82,8 @@ public sealed class PreferenceStoreTests
         Assert.Contains("\"alwaysOnTop\"", json, StringComparison.Ordinal);
         Assert.Contains("\"refreshPeriodSeconds\"", json, StringComparison.Ordinal);
         Assert.Contains("\"theme\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"workSchedule\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"quotaThresholds\"", json, StringComparison.Ordinal);
         Assert.DoesNotContain("\"warningThresholds\"", json, StringComparison.Ordinal);
         Assert.Contains("\"windowPlacement\"", json, StringComparison.Ordinal);
 
@@ -250,6 +257,8 @@ public sealed class PreferenceStoreTests
         Assert.False(result.UsedDefaults);
         Assert.Equal(WidgetPreferenceDefaults.CurrentSchemaVersion, result.Preferences.SchemaVersion);
         Assert.Equal(WidgetThemePreference.Light, result.Preferences.Theme);
+        Assert.Equal(56, UsageConfigurationRules.GetTotalWeeklyHours(result.Preferences.WorkSchedule));
+        Assert.Equal(70, result.Preferences.QuotaThresholds.RedBelowPercent);
     }
 
     [Fact]
@@ -365,19 +374,34 @@ public sealed class PreferenceStoreTests
     }
 
     [Fact]
-    public void Load_RejectsMalformedThemeForSchema5()
+    public void Load_RejectsMalformedThemeForSchema6()
     {
         using var directory = new TemporaryDirectory();
         var filePath = Path.Combine(directory.Path, "settings.json");
         WriteJson(filePath, """
             {
-              "schemaVersion": 5,
+              "schemaVersion": 6,
               "selectedView": "Compact",
               "compactAccountLayout": "Horizontal",
               "widgetScalePercent": 140,
               "alwaysOnTop": true,
               "refreshPeriodSeconds": 300,
               "theme": "Solarized",
+              "workSchedule": {
+                "monday": [{ "start": "07:00", "end": "17:00" }],
+                "tuesday": [{ "start": "07:00", "end": "17:00" }],
+                "wednesday": [{ "start": "07:00", "end": "17:00" }],
+                "thursday": [{ "start": "07:00", "end": "17:00" }],
+                "friday": [{ "start": "07:00", "end": "17:00" }],
+                "saturday": [{ "start": "20:00", "end": "23:00" }],
+                "sunday": [{ "start": "20:00", "end": "23:00" }]
+              },
+              "quotaThresholds": {
+                "redBelowPercent": 70,
+                "yellowBelowPercent": 90,
+                "blueAbovePercent": 110,
+                "pinkAbovePercent": 130
+              },
               "windowPlacement": {
                 "x": 0,
                 "y": 0,
@@ -393,6 +417,55 @@ public sealed class PreferenceStoreTests
         Assert.False(result.Availability.IsAvailable);
         Assert.True(result.UsedDefaults);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Summary.Contains("theme", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Load_RejectsOverlappingWorkScheduleForCurrentSchema()
+    {
+        using var directory = new TemporaryDirectory();
+        var filePath = Path.Combine(directory.Path, "settings.json");
+        WriteJson(filePath, """
+            {
+              "schemaVersion": 6,
+              "selectedView": "Compact",
+              "compactAccountLayout": "Horizontal",
+              "widgetScalePercent": 140,
+              "alwaysOnTop": true,
+              "refreshPeriodSeconds": 300,
+              "theme": "Light",
+              "workSchedule": {
+                "monday": [
+                  { "start": "09:00", "end": "11:00" },
+                  { "start": "10:30", "end": "12:00" }
+                ],
+                "tuesday": [],
+                "wednesday": [],
+                "thursday": [],
+                "friday": [],
+                "saturday": [],
+                "sunday": []
+              },
+              "quotaThresholds": {
+                "redBelowPercent": 70,
+                "yellowBelowPercent": 90,
+                "blueAbovePercent": 110,
+                "pinkAbovePercent": 130
+              },
+              "windowPlacement": {
+                "x": 0,
+                "y": 0,
+                "width": 360,
+                "height": 240
+              }
+            }
+            """);
+        var store = new PreferenceStore(new FixedPreferencePathProvider(filePath));
+
+        var result = store.Load();
+
+        Assert.False(result.Availability.IsAvailable);
+        Assert.True(result.UsedDefaults);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Summary.Contains("workSchedule monday[1]", StringComparison.Ordinal));
     }
 
     [Fact]
