@@ -15,6 +15,10 @@ internal sealed record WidgetPreferenceDraft
     public int RefreshPeriodSeconds { get; init; } = WidgetPreferenceDefaults.DefaultRefreshPeriodSeconds;
 
     public WidgetThemePreference Theme { get; init; } = WidgetPreferenceDefaults.DefaultTheme;
+
+    public WeeklyWorkSchedule WorkSchedule { get; init; } = UsageConfigurationDefaults.CreateDefaultWeeklyWorkSchedule();
+
+    public QuotaThresholds QuotaThresholds { get; init; } = UsageConfigurationDefaults.CreateDefaultQuotaThresholds();
 }
 
 internal sealed record WidgetPreferenceSaveOutcome
@@ -52,6 +56,8 @@ internal sealed class WidgetPreferenceCoordinator
             AlwaysOnTop = _currentPreferences.AlwaysOnTop,
             RefreshPeriodSeconds = _currentPreferences.RefreshPeriodSeconds,
             Theme = _currentPreferences.Theme,
+            WorkSchedule = _currentPreferences.WorkSchedule,
+            QuotaThresholds = _currentPreferences.QuotaThresholds,
         };
     }
 
@@ -69,6 +75,8 @@ internal sealed class WidgetPreferenceCoordinator
                 WidgetPreferenceDefaults.MinimumRefreshPeriodSeconds,
                 WidgetPreferenceDefaults.MaximumRefreshPeriodSeconds),
             Theme = NormalizeTheme(draft.Theme),
+            WorkSchedule = draft.WorkSchedule,
+            QuotaThresholds = draft.QuotaThresholds,
         };
     }
 
@@ -161,6 +169,8 @@ internal sealed class WidgetPreferenceCoordinator
             AlwaysOnTop = draft.AlwaysOnTop,
             RefreshPeriodSeconds = draft.RefreshPeriodSeconds,
             Theme = draft.Theme,
+            WorkSchedule = draft.WorkSchedule,
+            QuotaThresholds = draft.QuotaThresholds,
         };
     }
 

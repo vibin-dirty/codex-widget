@@ -23,6 +23,8 @@ public sealed class WidgetPreferenceCoordinatorTests
         Assert.Equal(defaults.AlwaysOnTop, draft.AlwaysOnTop);
         Assert.Equal(defaults.RefreshPeriodSeconds, draft.RefreshPeriodSeconds);
         Assert.Equal(defaults.Theme, draft.Theme);
+        Assert.Equal(defaults.WorkSchedule, draft.WorkSchedule);
+        Assert.Equal(defaults.QuotaThresholds, draft.QuotaThresholds);
     }
 
     [Fact]
@@ -61,6 +63,42 @@ public sealed class WidgetPreferenceCoordinatorTests
         var draft = coordinator.CreateDraft();
 
         Assert.Equal(130, draft.WidgetScalePercent);
+    }
+
+    [Fact]
+    public void CreateDraft_PreservesWorkScheduleAndQuotaThresholds()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = CreateStore(directory.Path);
+        var currentPreferences = WidgetPreferenceDefaults.Create() with
+        {
+            WorkSchedule = new WeeklyWorkSchedule
+            {
+                Monday = new DayWorkSchedule
+                {
+                    Windows =
+                    [
+                        new WorkWindow { Start = new TimeOnly(9, 0), End = new TimeOnly(12, 0) },
+                    ],
+                },
+            },
+            QuotaThresholds = new QuotaThresholds
+            {
+                RedBelowPercent = 60,
+                YellowBelowPercent = 80,
+                BlueAbovePercent = 105,
+                PinkAbovePercent = 125,
+            },
+        };
+        var coordinator = new WidgetPreferenceCoordinator(
+            store,
+            currentPreferences,
+            _ => { });
+
+        var draft = coordinator.CreateDraft();
+
+        Assert.Equal(currentPreferences.WorkSchedule, draft.WorkSchedule);
+        Assert.Equal(currentPreferences.QuotaThresholds, draft.QuotaThresholds);
     }
 
     [Fact]
@@ -251,6 +289,101 @@ public sealed class WidgetPreferenceCoordinatorTests
         var reloaded = store.Load();
         Assert.True(reloaded.Availability.IsAvailable);
         Assert.Equal(WidgetThemePreference.Dark, reloaded.Preferences.Theme);
+    }
+
+    [Fact]
+    public void SaveAndApply_PersistsWorkScheduleAndQuotaThresholds()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = CreateStore(directory.Path);
+        var applied = new List<WidgetPreferences>();
+        var coordinator = new WidgetPreferenceCoordinator(
+            store,
+            WidgetPreferenceDefaults.Create(),
+            applied.Add);
+
+        var outcome = coordinator.SaveAndApply(new WidgetPreferenceDraft
+        {
+            SelectedView = WidgetViewKind.Compact,
+            CompactAccountLayout = CompactAccountLayout.Vertical,
+            WidgetScalePercent = 120,
+            AlwaysOnTop = true,
+            RefreshPeriodSeconds = 300,
+            Theme = WidgetThemePreference.Dark,
+            WorkSchedule = new WeeklyWorkSchedule
+            {
+                Monday = new DayWorkSchedule
+                {
+                    Windows =
+                    [
+                        new WorkWindow { Start = new TimeOnly(8, 0), End = new TimeOnly(10, 0) },
+                        new WorkWindow { Start = new TimeOnly(11, 0), End = new TimeOnly(12, 30) },
+                    ],
+                },
+                Friday = new DayWorkSchedule
+                {
+                    Windows =
+                    [
+                        new WorkWindow { Start = new TimeOnly(14, 0), End = new TimeOnly(16, 0) },
+                    ],
+                },
+            },
+            QuotaThresholds = new QuotaThresholds
+            {
+                RedBelowPercent = 60,
+                YellowBelowPercent = 85,
+                BlueAbovePercent = 115,
+                PinkAbovePercent = 135,
+            },
+        });
+
+        Assert.True(outcome.Succeeded);
+        var appliedPreferences = Assert.Single(applied);
+        Assert.Equal(new TimeOnly(8, 0), appliedPreferences.WorkSchedule.Monday.Windows[0].Start);
+        Assert.Equal(new TimeOnly(12, 30), appliedPreferences.WorkSchedule.Monday.Windows[1].End);
+        Assert.Equal(135, appliedPreferences.QuotaThresholds.PinkAbovePercent);
+
+        var reloaded = store.Load();
+        Assert.True(reloaded.Availability.IsAvailable);
+        Assert.Equal(appliedPreferences.WorkSchedule, reloaded.Preferences.WorkSchedule);
+        Assert.Equal(appliedPreferences.QuotaThresholds, reloaded.Preferences.QuotaThresholds);
+    }
+
+    [Fact]
+    public void SaveAndApply_InvalidWorkScheduleReturnsFailureAndSkipsApply()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = CreateStore(directory.Path);
+        var applyCallCount = 0;
+        var coordinator = new WidgetPreferenceCoordinator(
+            store,
+            WidgetPreferenceDefaults.Create(),
+            _ => applyCallCount++);
+
+        var outcome = coordinator.SaveAndApply(new WidgetPreferenceDraft
+        {
+            SelectedView = WidgetViewKind.Compact,
+            CompactAccountLayout = CompactAccountLayout.Vertical,
+            WidgetScalePercent = 120,
+            AlwaysOnTop = true,
+            RefreshPeriodSeconds = 300,
+            Theme = WidgetThemePreference.Light,
+            WorkSchedule = new WeeklyWorkSchedule
+            {
+                Monday = new DayWorkSchedule
+                {
+                    Windows =
+                    [
+                        new WorkWindow { Start = new TimeOnly(9, 0), End = new TimeOnly(11, 0) },
+                        new WorkWindow { Start = new TimeOnly(10, 30), End = new TimeOnly(12, 0) },
+                    ],
+                },
+            },
+        });
+
+        Assert.False(outcome.Succeeded);
+        Assert.Equal(0, applyCallCount);
+        Assert.Contains(outcome.Messages, message => message.Contains("workSchedule", StringComparison.Ordinal));
     }
 
     [Fact]

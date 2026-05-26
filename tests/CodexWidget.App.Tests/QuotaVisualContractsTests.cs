@@ -168,6 +168,24 @@ public sealed class QuotaVisualContractsTests
         Assert.Equal(QuotaVisualStyles.QuotaFillColor, QuotaVisualStyles.ResolveQuotaFillColor(50, null, useSurplusFillColors: false));
     }
 
+    [Fact]
+    public void ResolveQuotaFillColor_UsesCustomThresholds()
+    {
+        var color = QuotaVisualStyles.ResolveQuotaFillColor(
+            quotaLeftPercent: 60,
+            timeLeftPercent: 60,
+            useSurplusFillColors: true,
+            thresholds: new QuotaThresholds
+            {
+                RedBelowPercent = 40,
+                YellowBelowPercent = 60,
+                BlueAbovePercent = 95,
+                PinkAbovePercent = 120,
+            });
+
+        Assert.Equal(Color.Parse("#FF2563EB"), color);
+    }
+
     private static void AssertBrushColor(IBrush brush, Color expected)
     {
         switch (brush)

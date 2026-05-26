@@ -5,11 +5,6 @@ namespace CodexWidget.App.Presentation.QuotaVisuals;
 
 internal static class QuotaVisualStyles
 {
-    private const double RedGateThresholdPercent = 70d;
-    private const double YellowGateThresholdPercent = 90d;
-    private const double BlueSurplusGateThresholdPercent = 110d;
-    private const double PinkSurplusGateThresholdPercent = 130d;
-
     private static readonly Color LightQuotaFillColor = Color.Parse("#FF18A24A");
     private static readonly Color LightQuotaFillBlueColor = Color.Parse("#FF2563EB");
     private static readonly Color LightQuotaFillPinkColor = Color.Parse("#FFEC4899");
@@ -73,46 +68,50 @@ internal static class QuotaVisualStyles
     public static Color ResolveQuotaFillColor(
         int? quotaLeftPercent,
         int? timeLeftPercent,
-        bool useSurplusFillColors)
+        bool useSurplusFillColors,
+        QuotaThresholds? thresholds = null)
     {
         return ResolveQuotaFillColor(
             WidgetVisualStyles.CurrentTheme,
             quotaLeftPercent,
             timeLeftPercent,
-            useSurplusFillColors);
+            useSurplusFillColors,
+            thresholds);
     }
 
     public static Color ResolveQuotaFillColor(
         WidgetThemePreference theme,
         int? quotaLeftPercent,
         int? timeLeftPercent,
-        bool useSurplusFillColors)
+        bool useSurplusFillColors,
+        QuotaThresholds? thresholds = null)
     {
         if (!quotaLeftPercent.HasValue || !timeLeftPercent.HasValue)
         {
             return ResolveQuotaFillColor(theme, isBlue: false, isPink: false, isYellow: false, isRed: false);
         }
 
+        var resolvedThresholds = thresholds ?? UsageConfigurationDefaults.CreateDefaultQuotaThresholds();
         var quota = QuotaVisualGeometry.ClampPercent(quotaLeftPercent.Value);
         var time = QuotaVisualGeometry.ClampPercent(timeLeftPercent.Value);
         var gatePercent = CalculateUsageGatePercent(quota, time);
 
-        if (gatePercent < RedGateThresholdPercent)
+        if (gatePercent < resolvedThresholds.RedBelowPercent)
         {
             return ResolveQuotaFillColor(theme, isBlue: false, isPink: false, isYellow: false, isRed: true);
         }
 
-        if (gatePercent < YellowGateThresholdPercent)
+        if (gatePercent < resolvedThresholds.YellowBelowPercent)
         {
             return ResolveQuotaFillColor(theme, isBlue: false, isPink: false, isYellow: true, isRed: false);
         }
 
-        if (useSurplusFillColors && gatePercent > PinkSurplusGateThresholdPercent)
+        if (useSurplusFillColors && gatePercent > resolvedThresholds.PinkAbovePercent)
         {
             return ResolveQuotaFillColor(theme, isBlue: false, isPink: true, isYellow: false, isRed: false);
         }
 
-        if (useSurplusFillColors && gatePercent > BlueSurplusGateThresholdPercent)
+        if (useSurplusFillColors && gatePercent > resolvedThresholds.BlueAbovePercent)
         {
             return ResolveQuotaFillColor(theme, isBlue: true, isPink: false, isYellow: false, isRed: false);
         }
@@ -123,9 +122,10 @@ internal static class QuotaVisualStyles
     public static IBrush ResolveQuotaFillBrush(
         int? quotaLeftPercent,
         int? timeLeftPercent,
-        bool useSurplusFillColors)
+        bool useSurplusFillColors,
+        QuotaThresholds? thresholds = null)
     {
-        var color = ResolveQuotaFillColor(quotaLeftPercent, timeLeftPercent, useSurplusFillColors);
+        var color = ResolveQuotaFillColor(quotaLeftPercent, timeLeftPercent, useSurplusFillColors, thresholds);
         if (color == QuotaFillPinkColor)
         {
             return QuotaFillPinkBrush;
