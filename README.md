@@ -56,7 +56,73 @@ dotnet build CodexWidget.slnx
 dotnet test CodexWidget.slnx
 ```
 
+## Helper Scripts
+
+The scripts in `scripts/` are optional wrappers around common build and
+validation commands. They resolve paths from the repository root and can be run
+from any working directory. Packaging requires either `zip` or `bsdtar`.
+
+Publish and package the desktop app for Windows:
+
+```bash
+scripts/publish-win-x64-package.sh
+```
+
+Common options:
+
+```bash
+scripts/publish-win-x64-package.sh \
+  --configuration Release \
+  --runtime win-x64 \
+  --artifact-set desktop \
+  --self-contained true
+```
+
+Outputs are written to `artifacts/publish/<artifact-set>/<runtime>/` and
+`artifacts/packages/<artifact-set>/`.
+
+Publish and package the web app:
+
+```bash
+scripts/publish-web.sh
+```
+
+Common options:
+
+```bash
+scripts/publish-web.sh \
+  --configuration Release \
+  --artifact-set web
+```
+
+Outputs are written to `artifacts/publish/<artifact-set>/web/` and
+`artifacts/packages/<artifact-set>/`.
+
+Run a loopback smoke test for the web app:
+
+```bash
+scripts/validate-web-loopback.sh
+```
+
+The loopback helper starts `CodexWidget.Web`, waits for `/health` and
+`/health/status`, then stops the process. Use `--port` or `--base-url` to avoid
+port conflicts.
+
 ## Desktop Widget
+
+### Install From A Package
+
+If a GitHub Release provides a Windows desktop package, download the
+`codex-widget-win-x64-self-contained.zip` asset, extract it to a local folder,
+and run:
+
+```powershell
+.\CodexWidget.App.exe
+```
+
+The self-contained package includes the .NET runtime needed by the desktop app.
+
+### Run From Source
 
 Run from source:
 
@@ -74,22 +140,47 @@ CODEX_PROFILES_HOME=/path/to/home-containing-dot-codex \
 Publish a Windows build:
 
 ```bash
-dotnet publish src/CodexWidget.App/CodexWidget.App.csproj \
-  -c Release -r win-x64 --self-contained false
+scripts/publish-win-x64-package.sh
 ```
 
-Launch the published executable from
-`src/CodexWidget.App/bin/Release/net10.0/win-x64/publish/`.
+Extract or copy the generated package from
+`artifacts/packages/desktop/codex-widget-win-x64-self-contained.zip`, then run
+`CodexWidget.App.exe`. The unpacked publish output is also available at
+`artifacts/publish/desktop/win-x64/`.
 
 ## Web App
 
 ### Docker
 
-Copy `docker-compose.env.example` to `.env` if overrides are needed, then set
-`CODEX_WIDGET_DATA_DIR` to a host directory that contains `.codex/`.
+Clone the repository and enter the checkout:
 
 ```bash
-docker compose up --build
+git clone <repo-url>
+cd codex-widget
+```
+
+Create a local Compose environment file:
+
+```bash
+cp docker-compose.env.example .env
+```
+
+Edit `.env` so `CODEX_WIDGET_DATA_DIR` points to the host directory that
+contains `.codex/`. Set it to the home directory that contains `.codex`, not to
+the `.codex` directory itself.
+
+Build and start the container:
+
+```bash
+docker compose up -d --build
+```
+
+Check container status and health:
+
+```bash
+docker compose ps
+curl -fsS http://127.0.0.1:8787/health
+curl -fsS http://127.0.0.1:8787/health/status
 ```
 
 Open `http://127.0.0.1:8787/`. Health checks are available at `/health` and
@@ -97,12 +188,28 @@ Open `http://127.0.0.1:8787/`. Health checks are available at `/health` and
 
 ### Non-Docker
 
-Run locally with the .NET SDK:
+Run locally from source with the .NET SDK:
 
 ```bash
 CodexWidgetWeb__CodexProfilesHome=/path/to/home-containing-dot-codex \
   dotnet run --project src/CodexWidget.Web/CodexWidget.Web.csproj
 ```
+
+Or publish the web app and run the published output:
+
+```bash
+scripts/publish-web.sh
+cd artifacts/publish/web/web
+CodexWidgetWeb__CodexProfilesHome=/path/to/home-containing-dot-codex \
+  ASPNETCORE_URLS=http://127.0.0.1:8787 \
+  dotnet CodexWidget.Web.dll
+```
+
+If a GitHub Release provides a web package, download the
+`codex-widget-web-publish.zip` asset, extract it, and run the same
+`dotnet CodexWidget.Web.dll` command from the extracted directory. This package
+is framework-dependent, so the target machine needs the .NET 10 ASP.NET Core
+runtime installed.
 
 By default the web host binds to `http://127.0.0.1:8787`. To bind elsewhere, set
 `ASPNETCORE_URLS`; non-loopback bindings also require
