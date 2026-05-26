@@ -1,3 +1,4 @@
+using CodexWidget.Core;
 using CodexWidget.Profiles;
 using CodexWidget.Runtime;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -34,6 +35,11 @@ public static class CodexWidgetWebServiceCollectionExtensions
         return new CodexWidgetRuntimeOptions
         {
             StartSchedulerOnInitialize = webOptions.EnableScheduler,
+            PreferenceOverride = WidgetPreferenceDefaults.Create() with
+            {
+                WorkSchedule = webOptions.WorkSchedule,
+                QuotaThresholds = webOptions.QuotaThresholds,
+            },
             ProfileSnapshotReadOptions = CreateProfileSnapshotReadOptions(webOptions),
         };
     }

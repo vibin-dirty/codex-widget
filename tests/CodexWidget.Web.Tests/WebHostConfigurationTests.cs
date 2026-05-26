@@ -1,3 +1,4 @@
+using CodexWidget.Core;
 using CodexWidget.Runtime;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,8 @@ public sealed class WebHostConfigurationTests
         Assert.True(resolved.EnableScheduler);
         Assert.True(resolved.ServeStaticFiles);
         Assert.Equal(15, resolved.PollingIntervalSeconds);
+        Assert.Equal(56, UsageConfigurationRules.GetTotalWeeklyHours(resolved.WorkSchedule));
+        Assert.Equal(70, resolved.QuotaThresholds.RedBelowPercent);
     }
 
     [Fact]
@@ -99,6 +102,49 @@ public sealed class WebHostConfigurationTests
     }
 
     [Fact]
+    public void Resolve_BindsWorkScheduleAndQuotaThresholdsFromConfiguration()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["CodexWidgetWeb:WorkSchedule:Monday:0:Start"] = "09:00",
+                ["CodexWidgetWeb:WorkSchedule:Monday:0:End"] = "11:30",
+                ["CodexWidgetWeb:WorkSchedule:Monday:1:Start"] = "13:00",
+                ["CodexWidgetWeb:WorkSchedule:Monday:1:End"] = "14:00",
+                ["CodexWidgetWeb:QuotaThresholds:RedBelowPercent"] = "60",
+                ["CodexWidgetWeb:QuotaThresholds:YellowBelowPercent"] = "80",
+                ["CodexWidgetWeb:QuotaThresholds:BlueAbovePercent"] = "115",
+                ["CodexWidgetWeb:QuotaThresholds:PinkAbovePercent"] = "135",
+            })
+            .Build();
+        var configuredOptions = configuration.GetSection(CodexWidgetWebOptions.SectionName).Get<CodexWidgetWebOptions>();
+
+        var resolved = CodexWidgetWebOptionsResolver.Resolve(configuration, configuredOptions);
+
+        Assert.Equal(new TimeOnly(9, 0), resolved.WorkSchedule.Monday.Windows[0].Start);
+        Assert.Equal(new TimeOnly(14, 0), resolved.WorkSchedule.Monday.Windows[1].End);
+        Assert.Equal(135, resolved.QuotaThresholds.PinkAbovePercent);
+    }
+
+    [Fact]
+    public void Resolve_RejectsInvalidQuotaThresholdOrdering()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["CodexWidgetWeb:QuotaThresholds:RedBelowPercent"] = "90",
+                ["CodexWidgetWeb:QuotaThresholds:YellowBelowPercent"] = "80",
+            })
+            .Build();
+        var configuredOptions = configuration.GetSection(CodexWidgetWebOptions.SectionName).Get<CodexWidgetWebOptions>();
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => CodexWidgetWebOptionsResolver.Resolve(configuration, configuredOptions));
+
+        Assert.Contains("QuotaThresholds", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Host_BindsRuntimeOptionsFromEnvironmentAndStartsWithoutSchedulerWhenDisabled()
     {
         var runtimeFactory = new RecordingRuntimeFactory();
@@ -121,10 +167,40 @@ public sealed class WebHostConfigurationTests
         Assert.Equal(
             "/synthetic/codex-home",
             capturedOptions.ProfileSnapshotReadOptions?.HomeResolution.ExplicitHomeDirectory);
+        Assert.NotNull(capturedOptions.PreferenceOverride);
+        Assert.Equal(56, UsageConfigurationRules.GetTotalWeeklyHours(capturedOptions.PreferenceOverride!.WorkSchedule));
+        Assert.Equal(70, capturedOptions.PreferenceOverride.QuotaThresholds.RedBelowPercent);
 
         using var scope = factory.Services.CreateScope();
         var resolvedWebOptions = scope.ServiceProvider.GetRequiredService<ResolvedCodexWidgetWebOptions>();
         Assert.Equal(["http://127.0.0.1:9797"], resolvedWebOptions.BindUrls);
+    }
+
+    [Fact]
+    public async Task Host_BindsPreferenceOverrideFromWebScheduleAndThresholdConfiguration()
+    {
+        var runtimeFactory = new RecordingRuntimeFactory();
+        using var environment = new TemporaryEnvironmentVariables(
+            new Dictionary<string, string?>
+            {
+                ["CodexWidgetWeb__WorkSchedule__Monday__0__Start"] = "09:00",
+                ["CodexWidgetWeb__WorkSchedule__Monday__0__End"] = "11:00",
+                ["CodexWidgetWeb__QuotaThresholds__RedBelowPercent"] = "65",
+                ["CodexWidgetWeb__QuotaThresholds__YellowBelowPercent"] = "85",
+                ["CodexWidgetWeb__QuotaThresholds__BlueAbovePercent"] = "115",
+                ["CodexWidgetWeb__QuotaThresholds__PinkAbovePercent"] = "140",
+            });
+        await using var factory = new TestWebApplicationFactory(runtimeFactory);
+
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/health");
+
+        response.EnsureSuccessStatusCode();
+
+        var capturedOptions = Assert.IsType<CodexWidgetRuntimeOptions>(runtimeFactory.CapturedOptions);
+        Assert.NotNull(capturedOptions.PreferenceOverride);
+        Assert.Equal(new TimeOnly(9, 0), capturedOptions.PreferenceOverride!.WorkSchedule.Monday.Windows[0].Start);
+        Assert.Equal(140, capturedOptions.PreferenceOverride.QuotaThresholds.PinkAbovePercent);
     }
 
     [Fact]

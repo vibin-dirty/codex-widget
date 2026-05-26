@@ -1,3 +1,4 @@
+using CodexWidget.Core;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using System.Net;
@@ -14,6 +15,8 @@ public static class CodexWidgetWebOptionsResolver
 
         var options = configuredOptions ?? new CodexWidgetWebOptions();
         var bindUrls = ResolveBindUrls(configuration, options);
+        var workSchedule = ResolveWorkSchedule(configuration, options);
+        var quotaThresholds = ResolveQuotaThresholds(configuration, options);
         ValidateBindUrls(bindUrls, options.AllowLanBinding);
 
         var allowedCorsOrigins = options.AllowedCorsOrigins
@@ -29,6 +32,8 @@ public static class CodexWidgetWebOptionsResolver
             throw new InvalidOperationException("CodexWidgetWeb:PollingIntervalSeconds must be greater than zero.");
         }
 
+        ValidateUsageConfiguration(workSchedule, quotaThresholds);
+
         return new ResolvedCodexWidgetWebOptions
         {
             BindUrls = bindUrls,
@@ -41,6 +46,8 @@ public static class CodexWidgetWebOptionsResolver
             CodexProfilesHome = string.IsNullOrWhiteSpace(options.CodexProfilesHome)
                 ? null
                 : options.CodexProfilesHome.Trim(),
+            WorkSchedule = workSchedule,
+            QuotaThresholds = quotaThresholds,
         };
     }
 
@@ -122,5 +129,48 @@ public static class CodexWidgetWebOptionsResolver
     {
         return origin.Equals("*", StringComparison.Ordinal)
                || origin.Contains('*', StringComparison.Ordinal);
+    }
+
+    private static WeeklyWorkSchedule ResolveWorkSchedule(IConfiguration configuration, CodexWidgetWebOptions options)
+    {
+        var section = configuration.GetSection($"{CodexWidgetWebOptions.SectionName}:WorkSchedule");
+        if (!section.Exists())
+        {
+            return options.WorkSchedule.ToCoreModel();
+        }
+
+        return (section.Get<WebWeeklyWorkScheduleOptions>() ?? options.WorkSchedule)
+            .ToCoreModel(UsageConfigurationDefaults.CreateDefaultWeeklyWorkSchedule());
+    }
+
+    private static QuotaThresholds ResolveQuotaThresholds(IConfiguration configuration, CodexWidgetWebOptions options)
+    {
+        var section = configuration.GetSection($"{CodexWidgetWebOptions.SectionName}:QuotaThresholds");
+        if (!section.Exists())
+        {
+            return options.QuotaThresholds;
+        }
+
+        return section.Get<QuotaThresholds>() ?? options.QuotaThresholds;
+    }
+
+    private static void ValidateUsageConfiguration(WeeklyWorkSchedule workSchedule, QuotaThresholds quotaThresholds)
+    {
+        ArgumentNullException.ThrowIfNull(workSchedule);
+        ArgumentNullException.ThrowIfNull(quotaThresholds);
+
+        var scheduleIssues = UsageConfigurationRules.ValidateWeeklyWorkSchedule(workSchedule);
+        if (scheduleIssues.Count > 0)
+        {
+            var summary = string.Join("; ", scheduleIssues.Select(issue => $"{issue.Path}: {issue.Message}"));
+            throw new InvalidOperationException($"CodexWidgetWeb:WorkSchedule is invalid. {summary}");
+        }
+
+        var thresholdIssues = UsageConfigurationRules.ValidateQuotaThresholds(quotaThresholds);
+        if (thresholdIssues.Count > 0)
+        {
+            var summary = string.Join("; ", thresholdIssues.Select(issue => $"{issue.Path}: {issue.Message}"));
+            throw new InvalidOperationException($"CodexWidgetWeb:QuotaThresholds is invalid. {summary}");
+        }
     }
 }

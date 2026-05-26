@@ -1,3 +1,5 @@
+using CodexWidget.Core;
+
 namespace CodexWidget.Web;
 
 public sealed record ResolvedCodexWidgetWebOptions
@@ -19,4 +21,8 @@ public sealed record ResolvedCodexWidgetWebOptions
     public int PollingIntervalSeconds { get; init; }
 
     public string? CodexProfilesHome { get; init; }
+
+    public WeeklyWorkSchedule WorkSchedule { get; init; } = UsageConfigurationDefaults.CreateDefaultWeeklyWorkSchedule();
+
+    public QuotaThresholds QuotaThresholds { get; init; } = UsageConfigurationDefaults.CreateDefaultQuotaThresholds();
 }
