@@ -53,6 +53,13 @@ jobs:
             --runtime win-x64 \
             --self-contained true \
             --artifact-set release \
+            --package-path "${package_dir}/codex-widget-win-x64-self-contained-${tag}.zip"
+
+          scripts/publish-win-x64-package.sh \
+            --configuration Release \
+            --runtime win-x64 \
+            --self-contained false \
+            --artifact-set release \
             --package-path "${package_dir}/codex-widget-win-x64-${tag}.zip"
 
       - name: Upload workflow artifacts
