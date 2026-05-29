@@ -13,6 +13,8 @@ state. It reads Codex profile data managed by
 local home directory, summarizes account status, and renders it either as a small
 desktop widget or as a browser UI with JSON endpoints.
 
+![](docs/images/readme-preview.png)
+
 ## Status
 
 This repository is in active development. The current codebase includes:
